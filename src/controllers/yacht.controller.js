@@ -156,7 +156,7 @@ exports.getAllYatch = async (req, res) => {
         // order: 1 para ascendente (barato a caro), -1 para descendente (caro a barato)
         const { name, sortBy, order } = req.query;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 12;
 
         // 2. CONSTRUIR EL OBJETO DE BÚSQUEDA DINÁMICO
         let query = {};

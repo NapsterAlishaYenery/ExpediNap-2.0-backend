@@ -176,7 +176,7 @@ exports.getAllExcursions = async (req, res) => {
         // 1. CAPTURAR PARÁMETROS DE FILTRO Y PAGINACIÓN
         const { name, category, location } = req.query;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 14;
+        const limit = parseInt(req.query.limit) || 12;
 
         // 2. CONSTRUIR EL OBJETO DE BÚSQUEDA DINÁMICO
         let query = {};

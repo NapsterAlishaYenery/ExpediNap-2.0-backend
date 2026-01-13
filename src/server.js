@@ -32,7 +32,8 @@ app.set('trust proxy', 1);
 // Configuarar CORS 
 const allowedOrigins = [
     "http://localhost:4200",
-    process.env.FRONTEND_ULR
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL_2,
 ]
 
 app.use(cors({
@@ -46,7 +47,7 @@ app.use(cors({
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
-}))
+}));
 
 // Configuara Middlewares globales
 app.use(helmet());

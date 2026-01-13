@@ -199,7 +199,7 @@ exports.getAllUsers = async (req, res) => {
     try {
         const { username, email, role, name } = req.query;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 12;
 
         let query = {};
 

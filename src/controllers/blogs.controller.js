@@ -218,7 +218,7 @@ exports.getAllBlogs = async (req, res) => {
         // Agregamos 'type' y 'author' a la desestructuración
         const { title, category, type, author } = req.query;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10; // Blogs suelen llevar menos por página
+        const limit = parseInt(req.query.limit) || 12; // Blogs suelen llevar menos por página
 
         // 2. CONSTRUIR EL OBJETO DE BÚSQUEDA DINÁMICO
         let query = {};
