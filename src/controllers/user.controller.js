@@ -74,6 +74,7 @@ exports.register = async (req, res) => {
 }
 
 exports.login = async (req, res) => {
+    
     const { username, password } = req.body;
 
     try {
@@ -119,7 +120,7 @@ exports.login = async (req, res) => {
 
 exports.update = async (req, res) => {
 
-    const id = req.user.id; //vendria desde el middleware que intercepta el token
+    const id = req.user.id;
     const updates = req.body;
 
     try {
@@ -250,7 +251,7 @@ exports.getAllUsers = async (req, res) => {
         });
 
     } catch (error) {
-        return res.status(500).json({
+        res.status(500).json({
             ok: false,
             type: 'ServerError',
             message: 'Internal server error while fetching users.',

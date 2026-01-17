@@ -18,14 +18,11 @@ const validateYacht = {
     create: (req, res, next) => {
         const data = req.body;
 
-        // 1. Verificar campos obligatorios
         const camposObligatorios = [
             'name',
             'includes',
             'description',
             'images'
-            // Quitamos saonaPrice, catalinaPrice y extras de aquí para que 
-            // no fallen si el yate no los ofrece o están vacíos.
         ];
 
         for (const campo of camposObligatorios) {
@@ -38,7 +35,6 @@ const validateYacht = {
             }
         }
 
-        // 2. Validar imágenes
         if (data.images && (!data.images.main || !data.images.main.url || !data.images.main.alt)) {
             return res.status(400).json({
                 ok: false,
@@ -47,8 +43,7 @@ const validateYacht = {
             });
         }
 
-        // 3. LOGICA MODIFICADA: River Sunset
-        // Ahora solo valida si viene con datos reales. Si es null o no viene, lo deja pasar.
+
         if (data.riverSunset && data.riverSunset.price !== null && data.riverSunset.price !== undefined) {
             if (!data.riverSunset.timeTrip) {
                 return res.status(400).json({
@@ -59,8 +54,6 @@ const validateYacht = {
             }
         }
 
-        // 4. LOGICA MODIFICADA: Extras
-        // Usamos checks de undefined/null en lugar de ! para permitir que el precio sea 0.
         if (data.extras && Array.isArray(data.extras)) {
             for (const extra of data.extras) {
                 if (
@@ -78,7 +71,6 @@ const validateYacht = {
             }
         }
 
-        // 5. Validar timeAvailable
         if (!data.timeAvailable || typeof data.timeAvailable !== 'object' || !data.timeAvailable.fullDay) {
             return res.status(400).json({
                 ok: false,
@@ -111,7 +103,6 @@ const validateYacht = {
             });
         }
 
-        // Repetimos la lógica flexible para el UPDATE
         if (updates.images && (!updates.images.main || !updates.images.main.url)) {
             return res.status(400).json({
                 ok: false,
@@ -120,7 +111,6 @@ const validateYacht = {
             });
         }
 
-        // Lógica flexible para extras en Update (permite precio 0)
         if (updates.extras && Array.isArray(updates.extras)) {
             for (const extra of updates.extras) {
                 if (!extra.type || extra.price === undefined) {
@@ -133,7 +123,7 @@ const validateYacht = {
             }
         }
 
-        // Lógica flexible para River Sunset en Update
+
         if (updates.riverSunset && updates.riverSunset.price !== null) {
             if (!updates.riverSunset.timeTrip) {
                 return res.status(400).json({

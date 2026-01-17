@@ -1,11 +1,6 @@
 const { Schema } = require('mongoose');
 
-/*
-  Sub-schema reutilizable para imágenes
-  ------------------------------------
-  - main: imagen principal
-  - gallery: imágenes secundarias
-*/
+
 const ImageItemSchema = new Schema(
   {
     url: {
@@ -19,7 +14,7 @@ const ImageItemSchema = new Schema(
       default: ''
     }
   },
-  { _id: false } // No crea _id para cada imagen
+  { _id: false } 
 );
 
 const ImagesSchema = new Schema(

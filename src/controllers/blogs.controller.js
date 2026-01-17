@@ -19,8 +19,7 @@ exports.createBlog = async (req, res) => {
     } = req.body;
 
     try {
-
-        //Crear Excursiones
+        
         const newBlog = await Blogs.create({
             title,
             category,
@@ -122,6 +121,7 @@ exports.upDateBlog = async (req, res) => {
 }
 
 exports.deleteBlog = async (req, res) => {
+
     const { id } = req.params;
 
     try {
@@ -138,13 +138,12 @@ exports.deleteBlog = async (req, res) => {
         res.status(200).json({
             ok: true,
             message: 'Blog deleted successfully',
-            // Opcional: puedes devolver el ID borrado
             data: deleteBlog
         });
 
     } catch (error) {
 
-        return res.status(500).json({
+        res.status(500).json({
             ok: false,
             type: 'ServerError',
             message: 'A critical error occurred while deleting.',
@@ -153,7 +152,9 @@ exports.deleteBlog = async (req, res) => {
 };
 
 exports.getBlogByID = async (req, res) => {
+
     const { id } = req.params;
+
     try {
 
         const blog = await Blogs.findById(id);
@@ -174,7 +175,7 @@ exports.getBlogByID = async (req, res) => {
 
     } catch (error) {
 
-        return res.status(500).json({
+        res.status(500).json({
             ok: false,
             type: 'ServerError',
             message: 'A critical error occurred on the server.',
@@ -214,52 +215,41 @@ exports.getBlogBySlug = async (req, res) => {
 
 exports.getAllBlogs = async (req, res) => {
     try {
-        // 1. CAPTURAR PARÁMETROS DE FILTRO Y PAGINACIÓN
-        // Agregamos 'type' y 'author' a la desestructuración
-        const { title, category, type, author } = req.query;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12; // Blogs suelen llevar menos por página
+        const limit = parseInt(req.query.limit) || 12;
 
-        // 2. CONSTRUIR EL OBJETO DE BÚSQUEDA DINÁMICO
         let query = {};
 
-        // Filtro por Título (Regex parcial)
         if (title) {
             query.title = { $regex: title, $options: 'i' };
         }
 
-        // Filtro por Categoría (Busca dentro del array de categorías)
         if (category) {
             query.category = category.toLowerCase();
         }
 
-        // Filtro por Tipo (Exacto: Guide, Review, Tips...)
         if (type) {
             query.type = { $regex: type, $options: 'i' };
         }
 
-        // Filtro por Autor (Regex parcial)
         if (author) {
             query.author = { $regex: author, $options: 'i' };
         }
 
         const skip = (page - 1) * limit;
 
-        // 3. EJECUCIÓN CONCURRENTE
         const [allBlogs, totalItems] = await Promise.all([
             Blogs.find(query)
-                .sort({ createdAt: -1 }) // Lo más nuevo arriba
+                .sort({ createdAt: -1 }) 
                 .skip(skip)
                 .limit(limit),
             Blogs.countDocuments(query)
         ]);
 
-        // 4. LÓGICA DE METADATOS
         const totalPages = Math.ceil(totalItems / limit);
         const hasNextPage = page < totalPages;
         const hasPrevPage = page > 1;
 
-        // 5. RESPUESTA ESTRUCTURADA
         return res.status(200).json({
             ok: true,
             data: allBlogs,
@@ -276,7 +266,7 @@ exports.getAllBlogs = async (req, res) => {
 
     } catch (error) {
         
-        return res.status(500).json({
+        res.status(500).json({
             ok: false,
             type: 'ServerError',
             message: 'A critical error occurred on the server while fetching blogs.',

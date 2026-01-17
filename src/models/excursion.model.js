@@ -21,8 +21,6 @@ const ExcursionsSchema = new Schema({
         required: [true, 'Regular Price is required'],
         min: [1.0, 'Price must be greater than 0'],
         max: [1000000, 'Price cannot exceed 1,000,000'],
-
-        // Validación personalizada a nivel de modelo
         validate: priceValidator
     },
     offerPriceUsd: {
@@ -30,6 +28,12 @@ const ExcursionsSchema = new Schema({
         required: [true, 'Offer Price is required'],
         min: [1.0, 'Price must be greater than 0'],
         max: [1000000, 'Price cannot exceed 1,000,000'],
+        validate: priceValidator
+    },
+    childPriceUsd: {
+        type: Number,
+        required: [true, 'Child Price is required'],
+        min: [0, 'Price cannot be negative'], 
         validate: priceValidator
     },
     location: {
@@ -40,7 +44,6 @@ const ExcursionsSchema = new Schema({
     categories: {
         type: [String],
         required: [true, 'At least one category is required'],
-        // Validación a nivel de modelo
         validate: stringArrayValidator()
 
     },
@@ -103,11 +106,7 @@ const ExcursionsSchema = new Schema({
 }
 );
 
-/*
-  Hook de validación
-  Se ejecuta ANTES de guardar o actualizar
-  Verifica que el precio de oferta sea menor al precio regular
-*/
+
 ExcursionsSchema.pre('validate', function () {
     if (this.offerPriceUsd >= this.regularPriceUsd) {
         this.invalidate(

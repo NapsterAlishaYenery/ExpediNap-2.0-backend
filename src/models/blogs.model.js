@@ -1,8 +1,9 @@
 const { Schema, model } = require('mongoose');
 const stringArrayValidator = require('../utils/string-array.validator');
 
-//Para formatear slug (ejemplo de Hola mundo a hola-mundo) npm install slugify
 const slugify = require('slugify');
+
+const sanitizeHtml = require('sanitize-html');
 
 const BlogsSchema = new Schema({
     title: {
@@ -54,7 +55,7 @@ const BlogsSchema = new Schema({
         trim: true
     },
     image: {
-        type: String, // URL de la imagen principal
+        type: String, 
         required: [true, 'la imagen es requerida JPS, JPEG, PNG, WEBP'],
         trim: true
     },
@@ -73,25 +74,48 @@ const BlogsSchema = new Schema({
 });
 
 
-BlogsSchema.pre('validate', function() {
+BlogsSchema.pre('validate', function () {
 
     if (this.isNew && this.title && !this.slug) {
-        // Generamos el slug base desde el título
         let baseSlug = slugify(this.title, { lower: true, strict: true });
 
-        // 2. Formatear la fecha actual (YYYY-MM-DD)
+
         const date = new Date();
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Meses son 0-11
+        const month = String(date.getMonth() + 1).padStart(2, '0'); 
         const day = String(date.getDate()).padStart(2, '0');
 
         const dateString = `${year}-${month}-${day}`;
-        
-        // Opcional: Si quieres permitir títulos iguales pero slugs distintos, 
-        // 3. Unir todo: ejemplo "tips-vacaciones-rd-2025-12-29"
+
         this.slug = `${baseSlug}-${dateString}`;
-        
-        // this.slug = baseSlug; 
+    }
+
+    if (this.content) {
+        this.content = sanitizeHtml(this.content, {
+            allowedTags: [
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section', 'article', 'address', 'div', 'span', 'p', 'br', 'hr',
+                'strong', 'em', 'b', 'i', 'u', 's', 'del', 'ins', 'mark', 'small', 'sub', 'sup', 'cite', 'code', 'pre', 'blockquote', 'q',
+                'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+                'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption', 'colgroup', 'col',
+                'img', 'a', 'picture', 'source', 'figure', 'figcaption',
+                'abbr', 'data', 'time', 'kbd', 'var', 'samp'
+            ],
+            allowedAttributes: {
+                '*': ['class', 'id', 'title', 'lang', 'dir', 'itemprop', 'role'],
+                'a': ['href', 'name', 'target', 'rel', 'download'],
+                'img': ['src', 'alt', 'title', 'width', 'height', 'loading', 'srcset', 'sizes'],
+                'ol': ['start', 'type', 'reversed'],
+                'li': ['value'],
+                'td': ['colspan', 'rowspan'],
+                'th': ['colspan', 'rowspan', 'scope'],
+                'source': ['src', 'srcset', 'type', 'media'],
+                'time': ['datetime']
+            },
+            allowedSchemes: ['http', 'https', 'mailto', 'tel', 'data'],
+            allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
+            allowProtocolRelative: true
+
+        });
     }
 });
 

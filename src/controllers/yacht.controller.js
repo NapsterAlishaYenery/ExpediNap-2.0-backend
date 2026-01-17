@@ -38,7 +38,6 @@ exports.createYatch = async (req, res) => {
     } catch (error) {
 
         if (error.name === 'ValidationError') {
-            console.log(error.errors);
             const message = Object.values(error.errors).map(val => val.message).join(', ');
             return res.status(400).json({
                 ok: false,
@@ -151,31 +150,23 @@ exports.deleteYatch = async (req, res) => {
 exports.getAllYatch = async (req, res) => {
 
     try {
-        // 1. CAPTURAR PARÁMETROS DE QUERY
-        // sortBy: puede ser 'saonaPrice', 'catalinaPrice' o 'createdAt'
-        // order: 1 para ascendente (barato a caro), -1 para descendente (caro a barato)
+
         const { name, sortBy, order } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
 
-        // 2. CONSTRUIR EL OBJETO DE BÚSQUEDA DINÁMICO
+
         let query = {};
 
-        // Filtro por Nombre (Búsqueda parcial e insensible a mayúsculas)
         if (name) {
             query.name = { $regex: name, $options: 'i' };
         }
 
-        // 3. CONSTRUIR EL OBJETO DE ORDENAMIENTO
-        // Por defecto: los más nuevos primero
         let sortOptions = { createdAt: -1 };
 
-        // Si el usuario quiere ordenar por precio
         if (sortBy === 'saona' || sortBy === 'saonaPrice') {
 
             const direction = parseInt(order) || 1;
-            // Accedemos al campo anidado del esquema de precios (ej: fullDay o halfDay)
-            // Aquí ordenamos por el precio de día completo (fullDay) por defecto
             sortOptions = { 'saonaPrice.fullDay': direction };
         }
         else if (sortBy === 'catalina' || sortBy === 'catalinaPrice') {
@@ -186,7 +177,6 @@ exports.getAllYatch = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        // 4. EJECUCIÓN CONCURRENTE
         const [allYatchs, totalItems] = await Promise.all([
             Yachts.find(query)
                 .sort(sortOptions)
@@ -195,7 +185,6 @@ exports.getAllYatch = async (req, res) => {
             Yachts.countDocuments(query)
         ]);
 
-        // 5. LÓGICA DE METADATOS PARA EL FRONTEND
         const totalPages = Math.ceil(totalItems / limit);
         const hasNextPage = page < totalPages;
         const hasPrevPage = page > 1;

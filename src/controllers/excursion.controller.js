@@ -1,4 +1,4 @@
-// Crear Excursiones
+
 const Excursions = require('../models/excursion.model');
 
 exports.createExcursion = async (req, res) => {
@@ -8,6 +8,7 @@ exports.createExcursion = async (req, res) => {
         description,
         regularPriceUsd,
         offerPriceUsd,
+        childPriceUsd,
         location,
         categories,
         duration,
@@ -23,12 +24,12 @@ exports.createExcursion = async (req, res) => {
 
     try {
 
-        //Crear Excursiones
         const newExcursion = await Excursions.create({
             name,
             description,
             regularPriceUsd,
             offerPriceUsd,
+            childPriceUsd, 
             location,
             categories,
             duration,
@@ -48,12 +49,6 @@ exports.createExcursion = async (req, res) => {
         });
 
     } catch (error) {
-
-        // 1. Log completo para TI (desarrollador) en la consola de Node
-        console.error('--- EXCURSION ERROR ---');
-        console.error(error);
-
-        // 2. Errores de validación de Mongoose (campos faltantes, tipos mal, etc.)
         if (error.name === 'ValidationError') {
             return res.status(400).json({
                 ok: false,
@@ -62,7 +57,6 @@ exports.createExcursion = async (req, res) => {
             });
         }
 
-        // 3. Error de duplicidad (Nombre ya existe)
         if (error.code === 11000) {
             return res.status(400).json({
                 ok: false,
@@ -95,7 +89,7 @@ exports.upDateExcursion = async (req, res) => {
         if (!upDateExcursion) {
             return res.status(404).json({
                 ok: false,
-                type: 'ValidationError',
+                type: 'NotFoundError',
                 message: 'Error: The excursion does not exist.',
             });
         }
@@ -209,7 +203,7 @@ exports.getAllExcursions = async (req, res) => {
         const [allExcursions, totalItems] = await Promise.all([
             // Tarea A: Buscar los documentos reales con filtros de orden y paginación
             Excursions.find(query)
-                .sort({ createdAt: -1 }) // -1 significa descendente (lo más nuevo arriba)
+                .sort({ createdAt: 1 }) // -1 significa descendente (lo más nuevo arriba)
                 .skip(skip)              // Salta los registros de páginas anteriores
                 .limit(limit),           // Trae solo la cantidad permitida
 

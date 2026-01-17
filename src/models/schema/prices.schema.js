@@ -22,11 +22,7 @@ const PricesSchema = new Schema({
     { _id: false }
 );
 
-/*
-  Regla de negocio:
-  Si el objeto price existe, debe tener
-  al menos halfDay o fullDay
-*/
+
 PricesSchema.pre('validate', function () {
   if (this.halfDay == null && this.fullDay == null) {
     this.invalidate(

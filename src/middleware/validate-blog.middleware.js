@@ -2,11 +2,10 @@ const { Types } = require("mongoose");
 
 const validateBlog = {
 
-    // --- VALIDAR REGISTRO / CREACIÓN ---
     create: (req, res, next) => {
 
          const data = req.body;
-        // 1. Verificar campos obligatorios para creación
+
         const camposObligatorios = [
             'title',
             'category',
@@ -33,7 +32,7 @@ const validateBlog = {
         next();
     },
 
-    // --- VALIDAR ID ---
+  
     id: (req, res, next) => {
         const { id } = req.params;
 
@@ -48,7 +47,6 @@ const validateBlog = {
         next();
     },
 
-    // --- VALIDAR UPDATE ---
     upDate: (req, res, next) => {
         const updates = req.body;
         const camposRecibidos = Object.keys(updates);
@@ -66,7 +64,6 @@ const validateBlog = {
 
         for (const campo of camposRecibidos) {
 
-            // Bloquear campos protegidos
             if (camposProhibidos.includes(campo)) {
                 return res.status(400).json({
                     ok: false,

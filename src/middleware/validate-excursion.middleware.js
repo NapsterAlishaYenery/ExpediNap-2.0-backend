@@ -5,6 +5,7 @@ const CAMPOS_PERMITIDOS = [
     "description",
     "regularPriceUsd",
     "offerPriceUsd",
+    "childPriceUsd", // <--- Agregado
     "location",
     "categories",
     "duration",
@@ -19,17 +20,16 @@ const CAMPOS_PERMITIDOS = [
 
 const validateExcursion = {
 
-    // --- VALIDAR CREATE ---
     create: (req, res, next) => {
 
         const data = req.body;
 
-        // 1. Verificar campos obligatorios para creación
         const camposObligatorios = [
             "name",
             "description",
             "regularPriceUsd",
             "offerPriceUsd",
+            "childPriceUsd", 
             "location",
             "categories",
             "duration",
@@ -42,6 +42,7 @@ const validateExcursion = {
             "images"];
 
         for (const campo of camposObligatorios) {
+
             if (!data[campo]) {
                 return res.status(400).json({
                     ok: false,
@@ -51,7 +52,6 @@ const validateExcursion = {
             }
         }
 
-        // 2. Validar tipos complejos rápidamente
         if (data.images && (!data.images.main || !data.images.main.alt)) {
             return res.status(400).json({
                 ok: false,
@@ -67,7 +67,7 @@ const validateExcursion = {
         next();
     },
 
-    // --- VALIDAR UPDATE ---
+
     upDate: (req, res, next) => {
 
         const updates = req.body;
@@ -83,7 +83,6 @@ const validateExcursion = {
             });
         }
 
-        // Dentro de tu validateExcursion.upDate...
         if (updates.offerPriceUsd && updates.regularPriceUsd) {
             if (updates.offerPriceUsd >= updates.regularPriceUsd) {
                 return res.status(400).json({
@@ -96,7 +95,6 @@ const validateExcursion = {
 
         for (const campo of camposRecibidos) {
 
-            // Bloquear campos protegidos
             if (camposProhibidos.includes(campo)) {
                 return res.status(400).json({
                     ok: false,
@@ -105,7 +103,6 @@ const validateExcursion = {
                 });
             }
 
-            // Bloquear campos inexistentes
             if (!CAMPOS_PERMITIDOS.includes(campo)) {
                 return res.status(400).json({
                     ok: false,
@@ -118,7 +115,6 @@ const validateExcursion = {
         next();
     },
 
-    // --- VALIDAR ID ---
     id: (req, res, next) => {
         const { id } = req.params;
 

@@ -17,6 +17,12 @@ const excursionRoutes = require('./routes/excrusions.route');
 const userRoutes = require('./routes/users.route');
 const yachtRoutes = require('./routes/yacht.route');
 const blogsRoutes = require('./routes/blog.routes');
+//Rutas nuevas
+const weatherRoutes = require('./routes/weather.routes');
+const reviewRoutes = require('./routes/review.routes');
+const orderTransferRoutes = require('./routes/transfer-order.routes');
+const orderYachRoutes = require('./routes/yacht-order.routes');
+const orderExcursionRoutes = require('./routes/excursion-order.routes');
 
 
 // Crear el server
@@ -62,6 +68,12 @@ app.use('/api/excursions', excursionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/yachts', yachtRoutes);
 app.use('/api/blogs',blogsRoutes);
+//RUTAS NUEVS
+app.use('/api/weather', weatherRoutes);
+app.use('/api/review', reviewRoutes);
+app.use('/api/order-transfer', orderTransferRoutes);
+app.use('/api/order-yacht', orderYachRoutes);
+app.use('/api/order-excursion', orderExcursionRoutes);
 
 // Configurar Middleware global de errores
 app.use((err, req, res, next) => {
