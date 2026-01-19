@@ -281,9 +281,13 @@ exports.getReviewStats = async (req, res) => {
         ]);
 
         const result = {
-            average: stats[0].ratingSummary[0]?.avgRating?.toFixed(1) || 0,
+            average: parseFloat(stats[0].ratingSummary[0]?.avgRating?.toFixed(1)) || 0,
             total: stats[0].ratingSummary[0]?.totalReviews || 0,
-            breakdown: stats[0].starsBreakdown
+            // Usamos reduce para mapear las estrellas a un objeto plano
+            breakdown: stats[0].starsBreakdown.reduce((acc, curr) => {
+                acc[curr._id] = curr.count;
+                return acc;
+            }, { "5": 0, "4": 0, "3": 0, "2": 0, "1": 0 })
         };
 
         res.status(200).json({
