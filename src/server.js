@@ -70,10 +70,10 @@ app.use('/api/yachts', yachtRoutes);
 app.use('/api/blogs',blogsRoutes);
 //RUTAS NUEVS
 app.use('/api/weather', weatherRoutes);
-app.use('/api/review', reviewRoutes);
-app.use('/api/order-transfer', orderTransferRoutes);
-app.use('/api/order-yacht', orderYachRoutes);
-app.use('/api/order-excursion', orderExcursionRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/orders-transfer', orderTransferRoutes);
+app.use('/api/orders-yacht', orderYachRoutes);
+app.use('/api/orders-excursion', orderExcursionRoutes);
 
 // Configurar Middleware global de errores
 app.use((err, req, res, next) => {
