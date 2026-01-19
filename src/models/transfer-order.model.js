@@ -11,7 +11,10 @@ const TransferOrderSchema = new Schema({
         index: true,
         uppercase: true 
     },
-    customer: ClientSchema,
+    customer: {
+        type: ClientSchema,
+        required: [true, 'Client Full name, email and phone is required']
+    },
     transferType: {
         type: String,
         required: [true, 'Tresfer Type is required'],

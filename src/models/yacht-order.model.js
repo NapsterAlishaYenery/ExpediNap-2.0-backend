@@ -9,7 +9,10 @@ const YachtOrderSchema = new Schema({
         index: true,
         uppercase: true
     },
-    customer: ClientSchema,
+    customer: {
+        type: ClientSchema,
+        required: [true, 'Client Full name, email and phone is required']
+    },
     yachtId: {
         type: Schema.Types.ObjectId,
         ref: 'yacht',

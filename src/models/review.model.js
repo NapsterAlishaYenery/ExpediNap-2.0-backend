@@ -1,21 +1,17 @@
 const { Schema, model } = require('mongoose');
 const crypto = require('crypto'); // Nativo de Node para el hash de Gravatar
+const ClientSchema = require('./schema/Client.schema')
 
-const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 
 const reviewsSchema = new Schema({
-    fullName: {
+   client: {
+        type: ClientSchema, // Aquí metemos fullName, email y phone
+        required: true,
+   },
+    city: { // Agregamos la ciudad
         type: String,
-        required: [true, 'Full Name is required'],
-        trim: true,
-    },
-    email: {
-        type: String,
-        required: [true, 'Email is required'],
-        trim: true,
-        lowercase: true,
-        match: [emailRegex, 'Please provide a valid email address'],
-        maxlength: [255, 'Email cannot exceed 255 characters']
+        required: [true, 'City is required'],
+        trim: true
     },
     selectedExcursion: {
         type: String,
@@ -61,10 +57,11 @@ const reviewsSchema = new Schema({
 
 reviewsSchema.pre('save', function () {
     
-    if (this.isModified('email')) {
+    if (this.isModified('client.email')) {
+        const emailParaHash = this.client.email.trim().toLowerCase();
         const hash = crypto
             .createHash('md5')
-            .update(this.email.trim().toLowerCase())
+            .update(emailParaHash)
             .digest('hex');
             
         this.userImg = `https://www.gravatar.com/avatar/${hash}?s=200&d=404`;

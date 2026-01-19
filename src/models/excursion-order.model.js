@@ -9,7 +9,10 @@ const ExcursionOrderSchema = new Schema({
         index: true,
         uppercase: true 
     },
-    customer: ClientSchema,
+    customer: {
+        type: ClientSchema,
+        required: [true, 'Client Full name, email and phone is required']
+    },
     excursionId: {
         type: Schema.Types.ObjectId,
         ref: 'excursions',
