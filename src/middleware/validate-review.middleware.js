@@ -7,7 +7,9 @@ const CAMPOS_PERMITIDOS = [
 ];
 
 const CAMPOS_PERMITIDOS_CREATE = [
-    'client',
+    'fullName',
+    'email',
+    'phone',
     'city',
     'selectedExcursion',
     'selectedYacht',
@@ -22,11 +24,15 @@ const validateReview = {
         const data = req.body;
 
         const camposObligatorios = [
-            'client',
+            'fullName',
+            'email',
+            'phone',
             'city',
             'rating',
             'comment'
         ];
+
+
 
         for (const campo of camposObligatorios) {
             if (!data[campo]) {
@@ -38,17 +44,13 @@ const validateReview = {
             }
         }
 
-        // --- EL AJUSTE CLAVE PARA EL NAPASTER ---
-        // Validar que los campos internos del objeto 'client' existan
-        const { fullName, email, phone } = data.client || {};
-        if (!fullName || !email || !phone) {
+        if (data.rating < 1 || data.rating > 5) {
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'The client object must include fullName, email, and phone.'
+                message: 'Rating must be between 1 and 5.'
             });
         }
-
 
         if (data.comment && data.comment.length > 500) {
             return res.status(400).json({

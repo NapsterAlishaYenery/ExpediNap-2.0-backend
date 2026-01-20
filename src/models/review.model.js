@@ -4,7 +4,7 @@ const ClientSchema = require('./schema/Client.schema')
 
 
 const reviewsSchema = new Schema({
-   client: {
+   customer: {
         type: ClientSchema, // Aquí metemos fullName, email y phone
         required: true,
    },

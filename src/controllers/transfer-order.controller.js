@@ -1,19 +1,9 @@
 const TransferOrder = require("../models/transfer-order.model");
 
-// =====================================================
-// Generar número de orden único para Transfer
-// =====================================================
 const generarNumeroOrden = () => {
     return `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
 
-/**
- * =====================================================
- * CREAR ORDEN DE TRANSFER (PÚBLICO)
- * =====================================================
- * ✔ Genera número de orden
- * ✔ Estado inicial: 'pending'
- */
 exports.createTransferOrder = async (req, res) => {
     try {
         // Desestructuramos lo que viene del formulario de la web
@@ -77,12 +67,6 @@ exports.createTransferOrder = async (req, res) => {
     }
 };
 
-
-/**
- * =====================================================
- * OBTENER TODAS LAS ORDENES (ADMIN) - CON PAGINACIÓN
- * =====================================================
- */
 exports.getAllTransferOrders = async (req, res) => {
     try {
         // 1. CAPTURAR PARÁMETROS
@@ -153,11 +137,6 @@ exports.getAllTransferOrders = async (req, res) => {
     }
 };
 
-/**
- * =====================================================
- * OBTENER ORDEN POR ID (ADMIN/CLIENTE)
- * =====================================================
- */
 exports.getTransferOrderById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -185,11 +164,6 @@ exports.getTransferOrderById = async (req, res) => {
     }
 };
 
-/**
- * =====================================================
- * ACTUALIZAR ORDEN (ADMIN - Confirmar Precio/Status)
- * =====================================================
- */
 exports.updateTransferOrder = async (req, res) => {
     try {
         const { id } = req.params;

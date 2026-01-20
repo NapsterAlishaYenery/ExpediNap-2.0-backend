@@ -4,7 +4,9 @@ const Reviews = require('../models/review.model');
 exports.createReview = async (req, res) => {
 
     const {
-        client,
+        fullName,
+        email,
+        phone,
         city,
         selectedExcursion,
         selectedYacht,
@@ -14,7 +16,7 @@ exports.createReview = async (req, res) => {
 
     try {
         const newReview = await Reviews.create({
-            client,
+            customer: { fullName, email, phone },
             city,
             selectedExcursion,
             selectedYacht,
@@ -213,11 +215,11 @@ exports.getAllReviewsAdmin = async (req, res) => {
         }
 
         if (email) {
-            query['client.email'] = { $regex: email, $options: 'i' };
+            query['customer.email'] = { $regex: email, $options: 'i' };
         }
 
         if (fullName) {
-            query['client.fullName'] = { $regex: fullName, $options: 'i' };
+            query['customer.fullName'] = { $regex: fullName, $options: 'i' };
         }
 
         const [reviews, totalItems] = await Promise.all([
