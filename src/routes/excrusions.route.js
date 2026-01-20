@@ -10,7 +10,9 @@ const excursionController = require('../controllers/excursion.controller');
 
 //RUTAS GET
 router.get('/all', excursionController.getAllExcursions);
+router.get('/all-for-select', excursionController.getExcursionsSimpleList);
 router.get('/detail/:id', validateExcursion.id, excursionController.getExcursionsByID);
+
 
 //RUTAS UPDATE
 router.patch('/update/:id', authMiddleware, isAdminMiddleware, writeLimiter, validateExcursion.id, validateExcursion.upDate, excursionController.upDateExcursion);

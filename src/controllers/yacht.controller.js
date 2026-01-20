@@ -242,3 +242,23 @@ exports.getYatchByID = async (req, res) => {
         });
     }
 }
+
+exports.getYachtsSimpleList = async (req, res) => {
+    try {
+        const list = await Yachts.find()
+            .select('_id name ')
+            .sort({ name: 1 });
+
+        return res.status(200).json({
+            ok: true,
+            data: list,
+            message: 'name list'
+        });
+    } catch (error) {
+        res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Error retrieving yacht list.'
+        });
+    }
+};
