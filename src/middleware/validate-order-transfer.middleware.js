@@ -2,7 +2,7 @@ const { Types } = require("mongoose");
 
 const CAMPOS_PERMITIDOS_UPDATE = [
     'status',
-    'pricing', 
+    'pricing',
     'internalNotes'
 ];
 
@@ -14,7 +14,9 @@ const CAMPOS_PERMITIDOS_CREATE = [
     'pickUpLocation',
     'destination',
     'numPassengers',
-    'pickUpDate'
+    'pickUpDate',
+    'flightNumber', // Nuevo
+    'arrivalTime'   // Nuevo
 ];
 
 const validateTransferOrder = {
@@ -48,6 +50,23 @@ const validateTransferOrder = {
                 ok: false,
                 type: 'ValidationError',
                 message: 'Invalid email format.'
+            });
+        }
+
+        if (data.pickUpDate && isNaN(new Date(data.pickUpDate).getTime())) {
+            return res.status(400).json({
+                ok: false,
+                type: 'ValidationError',
+                message: 'pickUpDate is not a valid date format.'
+            });
+        }
+
+        // Opcional: Validar arrivalTime si el usuario lo envió (ya que es opcional)
+        if (data.arrivalTime && isNaN(new Date(data.arrivalTime).getTime())) {
+            return res.status(400).json({
+                ok: false,
+                type: 'ValidationError',
+                message: 'arrivalTime is not a valid date format.'
             });
         }
 

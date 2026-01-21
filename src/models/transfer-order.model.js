@@ -41,6 +41,15 @@ const TransferOrderSchema = new Schema({
         type: Date, 
         required: [true, 'Pickup date and time is required']
     },
+    flightNumber: {
+        type: String,
+        trim: true,
+        default: null
+    },
+    arrivalTime: {
+        type: Date, // <--- Cambiado a Date
+        default: null
+    },
     status: {
         type: String,
         enum: ['pending', 'confirmed', 'paid', 'completed', 'cancelled', 'deleted'],

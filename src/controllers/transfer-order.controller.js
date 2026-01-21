@@ -16,6 +16,8 @@ exports.createTransferOrder = async (req, res) => {
             destination,
             numPassengers,
             pickUpDate, // Viene unificado del Front (Día + Hora)
+            flightNumber,
+            arrivalTime
         } = req.body;
 
         // 1. Mapeamos al Schema con el subdocumento 'customer'
@@ -31,6 +33,8 @@ exports.createTransferOrder = async (req, res) => {
             destination,
             numPassengers,
             pickUpDate,
+            flightNumber: flightNumber || null,
+            arrivalTime: arrivalTime || null,
             // Valores por defecto para administración
             // CAMBIO AQUÍ: Ahora es un objeto
             pricing: {
