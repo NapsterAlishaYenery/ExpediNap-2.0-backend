@@ -61,12 +61,12 @@ const validateTransferOrder = {
             });
         }
 
-        // Opcional: Validar arrivalTime si el usuario lo envió (ya que es opcional)
-        if (data.arrivalTime && isNaN(new Date(data.arrivalTime).getTime())) {
+        // Opcional: Validar que sea un formato de hora HH:mm
+        if (data.arrivalTime && !/^([01]\d|2[0-3]):?([0-5]\d)$/.test(data.arrivalTime)) {
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'arrivalTime is not a valid date format.'
+                message: 'arrivalTime must be in HH:mm format.'
             });
         }
 

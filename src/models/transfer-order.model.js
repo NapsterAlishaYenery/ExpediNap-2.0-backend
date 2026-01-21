@@ -47,7 +47,7 @@ const TransferOrderSchema = new Schema({
         default: null
     },
     arrivalTime: {
-        type: Date, // <--- Cambiado a Date
+        type: String, // <--- Cambiado a Date
         default: null
     },
     status: {
