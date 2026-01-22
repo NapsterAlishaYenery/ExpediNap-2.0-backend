@@ -215,6 +215,8 @@ exports.getBlogBySlug = async (req, res) => {
 
 exports.getAllBlogs = async (req, res) => {
     try {
+        // 1. EXTRAER LAS VARIABLES DE req.query
+        const {title, category, type, author } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
 
