@@ -12,7 +12,9 @@ const CAMPOS_PERMITIDOS_CREATE = [
     'phone',
     'adults',
     'children',
-    'travelDate'
+    'travelDate',
+    'hotelName',
+    'hotelNumber'
 ];
 
 const validateExcursionOrder = {
@@ -26,7 +28,7 @@ const validateExcursionOrder = {
             'email',
             'phone',
             'adults',
-            'travelDate'
+            'travelDate',
         ];
 
         for (const campo of camposObligatorios) {

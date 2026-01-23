@@ -15,6 +15,8 @@ exports.createExcursionOrder = async (req, res) => {
             adults,
             children,
             travelDate,
+            hotelName,   
+            hotelNumber 
         } = req.body;
 
         const excursionData = await Excursion.findById(excursionId);
@@ -38,6 +40,8 @@ exports.createExcursionOrder = async (req, res) => {
         const nuevaOrden = new ExcursionOrder({
             orderNumber: generarNumeroOrdenEx(),
             customer: { fullName, email, phone },
+            hotelName: hotelName || "Pick-up to be coordinated / Airbnb",  
+            hotelNumber: hotelNumber || "N/A",  
             excursionId: excursionData._id,
             excursionName: excursionData.name, 
             location: excursionData.location,   

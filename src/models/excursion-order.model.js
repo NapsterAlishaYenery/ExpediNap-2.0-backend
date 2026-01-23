@@ -7,11 +7,21 @@ const ExcursionOrderSchema = new Schema({
         required: [true, 'Order number is required'],
         unique: true,
         index: true,
-        uppercase: true 
+        uppercase: true
     },
     customer: {
         type: ClientSchema,
         required: [true, 'Client Full name, email and phone is required']
+    },
+    hotelName: { 
+        type: String,
+        trim: true,
+        default: "Not specified"
+    },
+    hotelNumber: { 
+        type: String,
+        trim: true,
+        default: "Not specified"
     },
     excursionId: {
         type: Schema.Types.ObjectId,
