@@ -1,12 +1,16 @@
 const TransferOrder = require("../models/transfer-order.model");
 
+
+const { buildTransferInvoiceTemplate } = require('../templates/emailTemplates');
+const { enviarEmail } = require('../services/mail/emailService'); 
+
 const generarNumeroOrden = () => {
     return `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
 
 exports.createTransferOrder = async (req, res) => {
     try {
-        // Desestructuramos lo que viene del formulario de la web
+       
         const {
             fullName,
             email,
@@ -15,12 +19,12 @@ exports.createTransferOrder = async (req, res) => {
             pickUpLocation,
             destination,
             numPassengers,
-            pickUpDate, // Viene unificado del Front (Día + Hora)
+            pickUpDate, 
             flightNumber,
             arrivalTime
         } = req.body;
 
-        // 1. Mapeamos al Schema con el subdocumento 'customer'
+      
         const nuevaOrden = new TransferOrder({
             orderNumber: generarNumeroOrden(),
             customer: {
@@ -35,8 +39,6 @@ exports.createTransferOrder = async (req, res) => {
             pickUpDate,
             flightNumber: flightNumber || null,
             arrivalTime: arrivalTime || null,
-            // Valores por defecto para administración
-            // CAMBIO AQUÍ: Ahora es un objeto
             pricing: {
                 totalPrice: 0,
                 currency: 'USD'
@@ -44,10 +46,24 @@ exports.createTransferOrder = async (req, res) => {
             status: 'pending'
         });
 
-        // 2. Guardamos en la base de datos
         const ordenGuardada = await nuevaOrden.save();
 
-        // 3. Respuesta al Frontend
+        try {
+        
+            const emailHtml = buildTransferInvoiceTemplate(ordenGuardada);
+
+            await enviarEmail({
+                to: email, 
+                subject: `TRANSFER REQUEST: ${ordenGuardada.orderNumber} - ${transferType.toUpperCase()}`,
+                html: emailHtml,
+                bcc: process.env.CONTACT_EMAIL_RECEIVER
+            });
+
+            console.log(`📧 Email de solicitud de transfer enviado a: ${email}`);
+        } catch (mailError) {
+            console.error("❌ Error al enviar el correo de transferencia:", mailError);
+        }
+
         return res.status(201).json({
             ok: true,
             message: 'Transfer request successfully received',
@@ -73,32 +89,30 @@ exports.createTransferOrder = async (req, res) => {
 
 exports.getAllTransferOrders = async (req, res) => {
     try {
-        // 1. CAPTURAR PARÁMETROS
+       
         const { customerName, status, orderNumber } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
-        // 2. FILTROS DINÁMICOS
+       
         let query = {};
 
-        // Búsqueda por Nombre del Cliente
+        
         if (customerName && customerName.trim().length > 0) {
             query['customer.fullName'] = { $regex: customerName, $options: 'i' };
         }
 
-        // Búsqueda por Estado
+     
         if (status && status.trim().length > 0) {
             query.status = status;
         }
 
-        // Búsqueda por Número de Orden (TR-XXXX)
-        // Usamos regex también por si el admin solo pega una parte del código
         if (orderNumber && orderNumber.trim().length > 0) {
             query.orderNumber = { $regex: orderNumber, $options: 'i' };
         }
 
-        // 3. EJECUCIÓN CONCURRENTE
+       
         const [orders, totalItems] = await Promise.all([
             TransferOrder.find(query)
                 .sort({ createdAt: -1 })
@@ -107,7 +121,7 @@ exports.getAllTransferOrders = async (req, res) => {
             TransferOrder.countDocuments(query)
         ]);
 
-        // 4. VALIDACIÓN DE EXISTENCIA
+   
         if (!orders || orders.length === 0) {
             return res.status(404).json({
                 ok: false,
@@ -185,6 +199,23 @@ exports.updateTransferOrder = async (req, res) => {
                 message: "Order not found",
                 type: "NOT_FOUND"
             });
+        }
+
+    
+        if (orderUpdated.status === 'confirmed' && orderUpdated.pricing.totalPrice > 0) {
+            try {
+                const emailHtml = buildTransferInvoiceTemplate(orderUpdated);
+
+                await enviarEmail({
+                    to: orderUpdated.customer.email,
+                    subject: `TRANSFER CONFIRMED: ${orderUpdated.orderNumber} - ${orderUpdated.transferType.toUpperCase()}`,
+                    html: emailHtml,
+                    bcc: process.env.CONTACT_EMAIL_RECEIVER
+                });
+                console.log(`📧 Email de confirmación enviado a: ${orderUpdated.customer.email} con precio: ${orderUpdated.pricing.totalPrice}`);
+            } catch (mailError) {
+                console.error("❌ Error al enviar el correo de actualización:", mailError);
+            }
         }
 
         return res.status(200).json({
@@ -266,7 +297,7 @@ exports.purgeTransferOrder = async (req, res) => {
             });
         }
 
-        
+
         await TransferOrder.findByIdAndDelete(id);
 
         return res.status(200).json({
@@ -328,13 +359,13 @@ exports.getTransferStats = async (req, res) => {
             statusCount: stats[0].byStatus.reduce((acc, curr) => {
                 acc[curr._id] = curr.count;
                 return acc;
-            }, { 
-                pending: 0, 
-                confirmed: 0, 
-                paid: 0, 
-                completed: 0, 
-                cancelled: 0, 
-                deleted: 0 
+            }, {
+                pending: 0,
+                confirmed: 0,
+                paid: 0,
+                completed: 0,
+                cancelled: 0,
+                deleted: 0
             })
         };
 

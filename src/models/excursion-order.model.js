@@ -13,12 +13,12 @@ const ExcursionOrderSchema = new Schema({
         type: ClientSchema,
         required: [true, 'Client Full name, email and phone is required']
     },
-    hotelName: { 
+    hotelName: {
         type: String,
         trim: true,
         default: "Not specified"
     },
-    hotelNumber: { 
+    hotelNumber: {
         type: String,
         trim: true,
         default: "Not specified"
@@ -59,6 +59,14 @@ const ExcursionOrderSchema = new Schema({
             required: true
         },
         childPriceSnap: {
+            type: Number,
+            required: true
+        },
+        subtotal: {
+            type: Number,
+            required: true
+        },
+        tax: {
             type: Number,
             required: true
         },

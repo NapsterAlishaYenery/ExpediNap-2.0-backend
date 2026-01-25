@@ -23,6 +23,8 @@ const reviewRoutes = require('./routes/review.routes');
 const orderTransferRoutes = require('./routes/transfer-order.routes');
 const orderYachRoutes = require('./routes/yacht-order.routes');
 const orderExcursionRoutes = require('./routes/excursion-order.routes');
+//Ruta pare enviar correos para contactos
+const emialSenderContactRoutes = require('./routes/email.routes');
 
 
 // Crear el server
@@ -68,12 +70,14 @@ app.use('/api/excursions', excursionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/yachts', yachtRoutes);
 app.use('/api/blogs',blogsRoutes);
-//RUTAS NUEVS
+//RUTAS NUEVAS
 app.use('/api/weather', weatherRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/orders-transfer', orderTransferRoutes);
 app.use('/api/orders-yacht', orderYachRoutes);
 app.use('/api/orders-excursion', orderExcursionRoutes);
+//RUTA NUEVA
+app.use('/api/email', emialSenderContactRoutes);
 
 // Configurar Middleware global de errores
 app.use((err, req, res, next) => {

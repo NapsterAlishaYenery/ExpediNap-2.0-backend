@@ -1,6 +1,9 @@
 const ExcursionOrder = require("../models/excursion-order.model");
 const Excursion = require("../models/excursion.model");
 
+const { enviarEmail } = require('../services/mail/emailService');
+const { buildExcursionInvoiceTemplate } = require('../templates/emailTemplates');
+
 const generarNumeroOrdenEx = () => {
     return `EX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
@@ -8,15 +11,15 @@ const generarNumeroOrdenEx = () => {
 exports.createExcursionOrder = async (req, res) => {
     try {
         const {
-            excursionId, 
+            excursionId,
             fullName,
             email,
             phone,
             adults,
             children,
             travelDate,
-            hotelName,   
-            hotelNumber 
+            hotelName,
+            hotelNumber
         } = req.body;
 
         const excursionData = await Excursion.findById(excursionId);
@@ -37,14 +40,19 @@ exports.createExcursionOrder = async (req, res) => {
         const totalChildren = (children || 0) * childPriceSnap;
         const totalPrice = Number((totalAdults + totalChildren).toFixed(2));
 
+       
+        const taxRate = 0.18;
+        const taxAmount = Number((totalPrice * taxRate).toFixed(2));
+        const finalTotalPrice = Number((totalPrice + taxAmount).toFixed(2));
+
         const nuevaOrden = new ExcursionOrder({
             orderNumber: generarNumeroOrdenEx(),
             customer: { fullName, email, phone },
-            hotelName: hotelName || "Pick-up to be coordinated / Airbnb",  
-            hotelNumber: hotelNumber || "N/A",  
+            hotelName: hotelName || "Pick-up to be coordinated / Airbnb",
+            hotelNumber: hotelNumber || "N/A",
             excursionId: excursionData._id,
-            excursionName: excursionData.name, 
-            location: excursionData.location,   
+            excursionName: excursionData.name,
+            location: excursionData.location,
             pax: {
                 adults,
                 children: children || 0
@@ -53,13 +61,33 @@ exports.createExcursionOrder = async (req, res) => {
             pricing: {
                 adultPriceSnap,
                 childPriceSnap,
-                totalPrice,
+                subtotal: Number(totalPrice.toFixed(2)), 
+                tax: taxAmount,                         
+                totalPrice: finalTotalPrice,            
                 currency: 'USD'
             },
             status: 'pending'
         });
 
         const ordenGuardada = await nuevaOrden.save();
+
+     
+        try {
+           
+            const emailHtml = buildExcursionInvoiceTemplate(ordenGuardada);
+
+            await enviarEmail({
+                to: email,
+                subject: `BOOKING CONFIRMATION: ${ordenGuardada.orderNumber} - ${ordenGuardada.excursionName.toUpperCase()}`,
+                html: emailHtml,
+                bcc: process.env.CONTACT_EMAIL_RECEIVER 
+            });
+            console.log(`📧 Email de confirmación enviado a: ${email}`);
+        } catch (mailError) {
+
+            console.error("❌ Error al enviar el correo de confirmación:", mailError);
+        }
+        
 
         return res.status(201).json({
             ok: true,
@@ -230,25 +258,25 @@ exports.deleteExcursionOrder = async (req, res) => {
         );
 
         if (!order) {
-            return res.status(404).json({ 
-                ok: false, 
+            return res.status(404).json({
+                ok: false,
                 message: "Order not found",
                 type: "NOT_FOUND"
             });
         }
 
-        res.status(200).json({ 
-            ok: true, 
+        res.status(200).json({
+            ok: true,
             message: "Order moved to trash",
-            data: order 
+            data: order
         });
 
     } catch (error) {
 
-        res.status(500).json({ 
-            ok: false, 
+        res.status(500).json({
+            ok: false,
             message: "Error deleting",
-            type: "SERVER_ERROR" 
+            type: "SERVER_ERROR"
         });
     }
 };
@@ -304,7 +332,7 @@ exports.getExcursionStats = async (req, res) => {
                         { $group: { _id: null, totalRevenue: { $sum: "$pricing.totalPrice" } } }
                     ],
                     "totalActive": [
-                        { $match: { status: { $ne: 'deleted' } } }, 
+                        { $match: { status: { $ne: 'deleted' } } },
                         { $count: "count" }
                     ]
                 }
@@ -317,13 +345,13 @@ exports.getExcursionStats = async (req, res) => {
             statusCount: stats[0].byStatus.reduce((acc, curr) => {
                 acc[curr._id] = curr.count;
                 return acc;
-            }, { 
-                pending: 0, 
-                confirmed: 0, 
-                paid: 0, 
-                completed: 0, 
-                cancelled: 0, 
-                deleted: 0 
+            }, {
+                pending: 0,
+                confirmed: 0,
+                paid: 0,
+                completed: 0,
+                cancelled: 0,
+                deleted: 0
             })
         };
 

@@ -1,7 +1,10 @@
 const YachtOrder = require("../models/yacht-order.model");
-const Yacht = require("../models/yachts.model"); 
+const Yacht = require("../models/yachts.model");
 
-   
+const { buildYachtInvoiceTemplate } = require('../templates/emailTemplates');
+const { enviarEmail } = require('../services/mail/emailService'); 
+
+
 const generarNumeroOrden = () => {
     return `YT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
@@ -65,10 +68,10 @@ exports.createYachtOrder = async (req, res) => {
             orderNumber: generarNumeroOrden(),
             customer: { fullName, email, phone },
             yachtId: yachtData._id,
-            yachtName: yachtData.name, 
+            yachtName: yachtData.name,
             destination,
             duration,
-            timeTrip: timeTripSelected, 
+            timeTrip: timeTripSelected,
             travelDate,
             pricing: {
                 basePrice,
@@ -80,6 +83,18 @@ exports.createYachtOrder = async (req, res) => {
         });
 
         const ordenGuardada = await nuevaOrden.save();
+
+        try {
+            const emailHtml = buildYachtInvoiceTemplate(ordenGuardada);
+            await enviarEmail({
+                to: email,
+                subject: `YACHT BOOKING REQUEST: ${ordenGuardada.orderNumber} - ${ordenGuardada.yachtName.toUpperCase()}`,
+                html: emailHtml,
+                bcc: process.env.CONTACT_EMAIL_RECEIVER
+            });
+        } catch (mailError) {
+            console.error("❌ Error al enviar el correo de solicitud de yate:", mailError);
+        }
 
         return res.status(201).json({
             ok: true,
@@ -108,7 +123,7 @@ exports.createYachtOrder = async (req, res) => {
 
 exports.getAllYachtOrders = async (req, res) => {
     try {
-    
+
         const { customerName, status, orderNumber } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
@@ -132,7 +147,7 @@ exports.getAllYachtOrders = async (req, res) => {
             YachtOrder.find(query)
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(limit), 
+                .limit(limit),
             YachtOrder.countDocuments(query)
         ]);
 
@@ -215,6 +230,20 @@ exports.updateYachtOrder = async (req, res) => {
                 message: "Order not found",
                 type: "NOT_FOUND"
             });
+        }
+
+        if (orderUpdated.isAvailable && orderUpdated.status === 'confirmed') {
+            try {
+                const emailHtml = buildYachtInvoiceTemplate(orderUpdated);
+                await enviarEmail({
+                    to: orderUpdated.customer.email,
+                    subject: `YACHT CONFIRMED: ${orderUpdated.orderNumber} - ${orderUpdated.yachtName.toUpperCase()}`,
+                    html: emailHtml,
+                    bcc: process.env.CONTACT_EMAIL_RECEIVER
+                });
+            } catch (mailError) {
+                console.error("❌ Error al enviar el correo de confirmación de yate:", mailError);
+            }
         }
 
         return res.status(200).json({
@@ -338,7 +367,7 @@ exports.getYachtStats = async (req, res) => {
                 pending: 0,
                 confirmed: 0,
                 paid: 0,
-                completed: 0, 
+                completed: 0,
                 cancelled: 0,
                 deleted: 0
             })
