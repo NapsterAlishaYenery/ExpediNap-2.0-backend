@@ -2,7 +2,7 @@ const TransferOrder = require("../models/transfer-order.model");
 
 
 const { buildTransferInvoiceTemplate } = require('../templates/emailTemplates');
-const { enviarEmail } = require('../services/mail/emailService'); 
+const { enviarEmail } = require('../services/mail/emailService');
 
 const generarNumeroOrden = () => {
     return `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -10,7 +10,7 @@ const generarNumeroOrden = () => {
 
 exports.createTransferOrder = async (req, res) => {
     try {
-       
+
         const {
             fullName,
             email,
@@ -19,12 +19,12 @@ exports.createTransferOrder = async (req, res) => {
             pickUpLocation,
             destination,
             numPassengers,
-            pickUpDate, 
+            pickUpDate,
             flightNumber,
             arrivalTime
         } = req.body;
 
-      
+
         const nuevaOrden = new TransferOrder({
             orderNumber: generarNumeroOrden(),
             customer: {
@@ -49,19 +49,26 @@ exports.createTransferOrder = async (req, res) => {
         const ordenGuardada = await nuevaOrden.save();
 
         try {
-        
-            const emailHtml = buildTransferInvoiceTemplate(ordenGuardada);
+
+            const emailHtml = buildTransferInvoiceTemplate(ordenGuardada, false);
 
             await enviarEmail({
-                to: email, 
+                to: email,
                 subject: `TRANSFER REQUEST: ${ordenGuardada.orderNumber} - ${transferType.toUpperCase()}`,
                 html: emailHtml,
-                bcc: process.env.CONTACT_EMAIL_RECEIVER
             });
 
-            console.log(`📧 Email de solicitud de transfer enviado a: ${email}`);
+            const htmlAdmin = buildTransferInvoiceTemplate(ordenGuardada, true);
+            await enviarEmail({
+                to: process.env.CONTACT_EMAIL_RECEIVER,
+                subject: `🚨 NEW ORDER: ${ordenGuardada.orderNumber} from ${fullName}`,
+                html: htmlAdmin
+            });
+
+
         } catch (mailError) {
-            console.error("❌ Error al enviar el correo de transferencia:", mailError);
+
+            console.error("[MAIL-ERROR] Transfer Order Notification:", mailError.message);
         }
 
         return res.status(201).json({
@@ -89,21 +96,21 @@ exports.createTransferOrder = async (req, res) => {
 
 exports.getAllTransferOrders = async (req, res) => {
     try {
-       
+
         const { customerName, status, orderNumber } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
-       
+
         let query = {};
 
-        
+
         if (customerName && customerName.trim().length > 0) {
             query['customer.fullName'] = { $regex: customerName, $options: 'i' };
         }
 
-     
+
         if (status && status.trim().length > 0) {
             query.status = status;
         }
@@ -112,7 +119,7 @@ exports.getAllTransferOrders = async (req, res) => {
             query.orderNumber = { $regex: orderNumber, $options: 'i' };
         }
 
-       
+
         const [orders, totalItems] = await Promise.all([
             TransferOrder.find(query)
                 .sort({ createdAt: -1 })
@@ -121,7 +128,7 @@ exports.getAllTransferOrders = async (req, res) => {
             TransferOrder.countDocuments(query)
         ]);
 
-   
+
         if (!orders || orders.length === 0) {
             return res.status(404).json({
                 ok: false,
@@ -201,20 +208,26 @@ exports.updateTransferOrder = async (req, res) => {
             });
         }
 
-    
+
         if (orderUpdated.status === 'confirmed' && orderUpdated.pricing.totalPrice > 0) {
             try {
-                const emailHtml = buildTransferInvoiceTemplate(orderUpdated);
+                const emailHtml = buildTransferInvoiceTemplate(orderUpdated, false);
 
                 await enviarEmail({
                     to: orderUpdated.customer.email,
                     subject: `TRANSFER CONFIRMED: ${orderUpdated.orderNumber} - ${orderUpdated.transferType.toUpperCase()}`,
                     html: emailHtml,
-                    bcc: process.env.CONTACT_EMAIL_RECEIVER
                 });
-                console.log(`📧 Email de confirmación enviado a: ${orderUpdated.customer.email} con precio: ${orderUpdated.pricing.totalPrice}`);
+
+                const emailHtmlAdmin = buildTransferInvoiceTemplate(orderUpdated, true);
+                await enviarEmail({
+                    to: process.env.CONTACT_EMAIL_RECEIVER,
+                    subject: `✅ TRANSFER UPDATED/CONFIRMED: ${orderUpdated.orderNumber}`,
+                    html: emailHtmlAdmin
+                });
+
             } catch (mailError) {
-                console.error("❌ Error al enviar el correo de actualización:", mailError);
+                console.error("[MAIL-ERROR] Transfer Order Notification:", mailError.message);
             }
         }
 

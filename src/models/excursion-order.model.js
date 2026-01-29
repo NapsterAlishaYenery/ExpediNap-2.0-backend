@@ -95,6 +95,10 @@ const ExcursionOrderSchema = new Schema({
         trim: true,
         maxlength: [1000, 'Notes cannot exceed 1000 characters'],
         default: ""
+    },
+    paypalOrderId: {
+        type: String,
+        index: true 
     }
 }, {
     versionKey: false,

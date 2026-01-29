@@ -11,6 +11,10 @@ const validateExcursionOrder = require('../middleware/validate-order-excursion.m
 const excursionOrderController = require('../controllers/excursion-order.controller');
 
 
+// Angular llamará aquí después de que el usuario apruebe el pago
+router.post('/paypal/capture/:orderId', excursionOrderController.captureExcursionPayment);
+
+
 router.post('/request', [writeLimiter, validateExcursionOrder.create], excursionOrderController.createExcursionOrder);
 
 // Obtener todas las órdenes 
@@ -30,5 +34,8 @@ router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateExcursi
 
 // Borrado físico 
 router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateExcursionOrder.id], excursionOrderController.purgeExcursionOrder);
+
+
+
 
 module.exports = router;

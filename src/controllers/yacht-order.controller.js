@@ -2,7 +2,7 @@ const YachtOrder = require("../models/yacht-order.model");
 const Yacht = require("../models/yachts.model");
 
 const { buildYachtInvoiceTemplate } = require('../templates/emailTemplates');
-const { enviarEmail } = require('../services/mail/emailService'); 
+const { enviarEmail } = require('../services/mail/emailService');
 
 
 const generarNumeroOrden = () => {
@@ -85,15 +85,23 @@ exports.createYachtOrder = async (req, res) => {
         const ordenGuardada = await nuevaOrden.save();
 
         try {
-            const emailHtml = buildYachtInvoiceTemplate(ordenGuardada);
+           // 1. Correo para el Cliente
+            const emailHtmlClient = buildYachtInvoiceTemplate(ordenGuardada, false);
             await enviarEmail({
                 to: email,
                 subject: `YACHT BOOKING REQUEST: ${ordenGuardada.orderNumber} - ${ordenGuardada.yachtName.toUpperCase()}`,
-                html: emailHtml,
-                bcc: process.env.CONTACT_EMAIL_RECEIVER
+                html: emailHtmlClient,
+            });
+
+            // 2. Correo para el Admin 
+            const emailHtmlAdmin = buildYachtInvoiceTemplate(ordenGuardada, true);
+            await enviarEmail({
+                to: process.env.CONTACT_EMAIL_RECEIVER,
+                subject: `✅ NEW YACHT REQUEST: ${ordenGuardada.orderNumber} - ${ordenGuardada.customer.fullName}`,
+                html: emailHtmlAdmin
             });
         } catch (mailError) {
-            console.error("❌ Error al enviar el correo de solicitud de yate:", mailError);
+           console.error("[MAIL-ERROR] Yacht Order Notification:", mailError.message);
         }
 
         return res.status(201).json({
@@ -103,6 +111,8 @@ exports.createYachtOrder = async (req, res) => {
         });
 
     } catch (error) {
+
+        console.error("[CREATE-YACHT-ORDER-ERROR]:", error);
 
         if (error.name === 'ValidationError') {
             const firstError = Object.values(error.errors)[0].message;
@@ -234,15 +244,24 @@ exports.updateYachtOrder = async (req, res) => {
 
         if (orderUpdated.isAvailable && orderUpdated.status === 'confirmed') {
             try {
-                const emailHtml = buildYachtInvoiceTemplate(orderUpdated);
+                // 1. Correo para el Cliente
+                const emailHtmlClient = buildYachtInvoiceTemplate(orderUpdated, false);
                 await enviarEmail({
                     to: orderUpdated.customer.email,
                     subject: `YACHT CONFIRMED: ${orderUpdated.orderNumber} - ${orderUpdated.yachtName.toUpperCase()}`,
-                    html: emailHtml,
-                    bcc: process.env.CONTACT_EMAIL_RECEIVER
+                    html: emailHtmlClient,
                 });
+
+                // 2. Correo para el Admin 
+                const emailHtmlAdmin = buildYachtInvoiceTemplate(orderUpdated, true);
+                await enviarEmail({
+                    to: process.env.CONTACT_EMAIL_RECEIVER,
+                    subject: `🚨 YACHT UPDATED: ${orderUpdated.orderNumber} - ${orderUpdated.customer.fullName}`,
+                    html: emailHtmlAdmin
+                });
+                
             } catch (mailError) {
-                console.error("❌ Error al enviar el correo de confirmación de yate:", mailError);
+                console.error("[MAIL-ERROR] Yacht Confirmation:", mailError.message);;
             }
         }
 

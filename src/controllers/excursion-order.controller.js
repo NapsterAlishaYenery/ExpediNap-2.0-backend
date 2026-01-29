@@ -4,6 +4,8 @@ const Excursion = require("../models/excursion.model");
 const { enviarEmail } = require('../services/mail/emailService');
 const { buildExcursionInvoiceTemplate } = require('../templates/emailTemplates');
 
+const paypalService = require('../services/paypal/paypal.service');
+
 const generarNumeroOrdenEx = () => {
     return `EX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
@@ -33,6 +35,7 @@ exports.createExcursionOrder = async (req, res) => {
             });
         }
 
+        // --- CÁLCULO DE PRECIOS ---
         const adultPriceSnap = excursionData.offerPriceUsd;
         const childPriceSnap = excursionData.childPriceUsd || 0;
 
@@ -40,13 +43,23 @@ exports.createExcursionOrder = async (req, res) => {
         const totalChildren = (children || 0) * childPriceSnap;
         const totalPrice = Number((totalAdults + totalChildren).toFixed(2));
 
-       
+
         const taxRate = 0.18;
         const taxAmount = Number((totalPrice * taxRate).toFixed(2));
         const finalTotalPrice = Number((totalPrice + taxAmount).toFixed(2));
 
+        const internalOrderNumber = generarNumeroOrdenEx();
+
+        // --- LLAMADA AL NUEVO SERVICIO PAYPAL---
+        const paypalOrder = await paypalService.createPayPalOrder(finalTotalPrice, {
+            fullName,
+            email,
+            phone
+        });
+
+
         const nuevaOrden = new ExcursionOrder({
-            orderNumber: generarNumeroOrdenEx(),
+            orderNumber: internalOrderNumber,
             customer: { fullName, email, phone },
             hotelName: hotelName || "Pick-up to be coordinated / Airbnb",
             hotelNumber: hotelNumber || "N/A",
@@ -61,38 +74,23 @@ exports.createExcursionOrder = async (req, res) => {
             pricing: {
                 adultPriceSnap,
                 childPriceSnap,
-                subtotal: Number(totalPrice.toFixed(2)), 
-                tax: taxAmount,                         
-                totalPrice: finalTotalPrice,            
+                subtotal: Number(totalPrice.toFixed(2)),
+                tax: taxAmount,
+                totalPrice: finalTotalPrice,
                 currency: 'USD'
             },
+            paypalOrderId: paypalOrder.id,
             status: 'pending'
         });
 
+
         const ordenGuardada = await nuevaOrden.save();
 
-     
-        try {
-           
-            const emailHtml = buildExcursionInvoiceTemplate(ordenGuardada);
-
-            await enviarEmail({
-                to: email,
-                subject: `BOOKING CONFIRMATION: ${ordenGuardada.orderNumber} - ${ordenGuardada.excursionName.toUpperCase()}`,
-                html: emailHtml,
-                bcc: process.env.CONTACT_EMAIL_RECEIVER 
-            });
-            console.log(`📧 Email de confirmación enviado a: ${email}`);
-        } catch (mailError) {
-
-            console.error("❌ Error al enviar el correo de confirmación:", mailError);
-        }
-        
 
         return res.status(201).json({
             ok: true,
             message: 'Excursion booking request received successfully',
-            data: ordenGuardada
+            data: ordenGuardada, 
         });
 
     } catch (error) {
@@ -112,6 +110,83 @@ exports.createExcursionOrder = async (req, res) => {
         });
     }
 };
+
+exports.captureExcursionPayment = async (req, res) => {
+    try {
+        const { orderId } = req.params; 
+
+       
+        const captureData = await paypalService.capturePayPalOrder(orderId);
+
+        if (captureData.status === 'COMPLETED') {
+            const order = await ExcursionOrder.findOneAndUpdate(
+                { paypalOrderId: orderId },
+                { status: 'paid' },
+                { new: true }
+            );
+
+            if (!order) {
+                return res.status(404).json({
+                    ok: false,
+                    message: "Order not found",
+                    type: "NOT_FOUND_ERROR"
+                });
+            }
+
+            try {
+                const emailHtmlClient = buildExcursionInvoiceTemplate(order, false);
+                await enviarEmail({
+                    to: order.customer.email,
+                    subject: `Booking Paid: ${order.orderNumber} - ${order.excursionName.toUpperCase()}`,
+                    html: emailHtmlClient
+                });
+
+               
+                const emailHtmlAdmin = buildExcursionInvoiceTemplate(order, true);
+                await enviarEmail({
+                    to: process.env.CONTACT_EMAIL_RECEIVER,
+                    subject: `💰 NEW SALE: ${order.orderNumber} - ${order.customer.fullName}`,
+                    html: emailHtmlAdmin
+                });
+            } catch (mailErr) {
+                console.error("[MAIL-ERROR] Excursion Order Notification:", mailErr.message);
+            }
+
+            return res.status(200).json({
+                ok: true,
+                message: "Payment successful",
+                data: order
+            });
+        }
+
+        res.status(400).json({
+            ok: false,
+            message: "Payment not completed",
+            type: "PAYMENT_ERROR"
+        });
+
+    } catch (error) {
+
+        if (error.statusCode === 422 || (error._originalError && error._originalError.statusCode === 422)) {
+            console.warn("⚠️ Pago rechazado por PayPal (Falta de fondos o tarjeta inválida)");
+            return res.status(400).json({
+                ok: false,
+                message: "Your card was declined. Please try another payment method.",
+                type: "PAYMENT_DECLINED"
+            });
+        }
+
+        console.error("Capture Error:", error);
+        res.status(500).json({
+            ok: false,
+            message: "Error capturing payment",
+            type: "SERVER_ERROR"
+        });
+    }
+};
+
+
+
 
 exports.getAllExcursionOrders = async (req, res) => {
 
@@ -222,6 +297,21 @@ exports.updateExcursionOrder = async (req, res) => {
                 type: "NOT_FOUND"
             });
         }
+
+        // SOLO ENVIAR SI LA ORDEN ESTÁ PAGADA (Para no molestar en borradores)
+        if (orderUpdated.status === 'paid') {
+            try {
+                const emailHtml = buildExcursionInvoiceTemplate(orderUpdated, false);
+                await enviarEmail({
+                    to: orderUpdated.customer.email,
+                    subject: `UPDATED BOOKING: ${orderUpdated.orderNumber}`,
+                    html: emailHtml
+                });
+            } catch (mailErr) {
+                console.error("❌ Error enviando actualización de excursión:", mailErr);
+            }
+        }
+        
         res.status(200).json({
             ok: true,
             data: orderUpdated,

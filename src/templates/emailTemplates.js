@@ -9,22 +9,23 @@ const COMPANY = {
     rnc: "30930484344"
 };
 
-function buildExcursionInvoiceTemplate(order) {
+function buildExcursionInvoiceTemplate(order, isAdmin = false) {
     const {
-        orderNumber,
-        customer,
-        pax,
-        pricing,
-        createdAt,
-        excursionName,
-        hotelName,
-        hotelNumber,
-        travelDate
+        orderNumber, customer, pax, pricing, createdAt,
+        excursionName, hotelName, hotelNumber, travelDate
     } = order;
 
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(travelDate);
     const nombreParaMostrar = (excursionName || "Excursion").toUpperCase();
+
+    // Lógica dinámica
+    const statusBarText = isAdmin ? 'ADMIN NOTIFICATION | PAYMENT RECEIVED' : `BOOKED ON: ${bookingDateStr}`;
+    const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
+    const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : 'CONFIRM PICKUP VIA WHATSAPP';
+    const whatsappMessage = isAdmin 
+        ? `Hello ${customer.fullName}, I am contacting you regarding your booking for ${nombreParaMostrar} (Order ${orderNumber})`
+        : `Hello, I just paid for the excursion ${nombreParaMostrar}. My order is ${orderNumber}. Could you confirm my pickup time?`;
 
     return `
     <!DOCTYPE html>
@@ -59,7 +60,7 @@ function buildExcursionInvoiceTemplate(order) {
                 alt="ExpediNap" style="max-width: 250px; height: auto;">
             </div>
             <div class="status-bar">
-                ORDER: <strong>${orderNumber}</strong> | BOOKED ON: ${bookingDateStr}
+                ORDER: <strong>${orderNumber}</strong> | ${statusBarText}
             </div>
             <div class="content">
                 <div class="section-title">📍 Tour & Pickup Details</div>
@@ -111,14 +112,16 @@ function buildExcursionInvoiceTemplate(order) {
                 </div>
                 <div style="clear: both;"></div>
                 <div class="recommendations">
-                    <strong>📢 Recommendations:</strong><br>
+                    ${isAdmin ? `<strong>📢 Admin Action Required:</strong><br>Check availability for the pickup at <b>${hotelName}</b> and send the exact time to the client via WhatsApp.` : 
+                    `<strong>📢 Recommendations:</strong><br>
                     ✅ Sunglasses, hat, and biodegradable sunscreen.<br>
                     ✅ Please arrive 15 minutes before pickup time.<br>
-                    ✅ Presentation of this digital receipt is required.
+                    ✅ Presentation of this digital receipt is required.`}
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
-                    <p style="font-size: 14px;">To confirm your exact pickup time:</p>
-                    <a href="https://wa.me/${COMPANY.phone}" class="btn-whatsapp">CONFIRM VIA WHATSAPP</a>
+                    <p style="font-size: 14px;">${isAdmin ? 'Quick contact with customer:' : 'To confirm your exact pickup time:'}</p>
+                    <a href="https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}" class="btn-whatsapp">${buttonText}</a>
+                    ${isAdmin ? `<br><a href="mailto:${customer.email}" style="font-size: 12px; color: #64748b; display: block; margin-top: 10px;">Send Email to Customer</a>` : ''}
                 </div>
             </div>
             <div class="footer">
@@ -126,7 +129,7 @@ function buildExcursionInvoiceTemplate(order) {
                 Punta Cana, Dominican Republic<br>
                 RNC: ${COMPANY.rnc} | <a href="${COMPANY.website}" style="color: #94a3b8; text-decoration: underline;">www.expedinap.com</a><br><br>
                 <div style="border-top: 1px solid #475569; padding-top: 15px; margin-top: 15px; font-size: 10px; color: #94a3b8;">
-                    This is an automatic confirmation. For support contact us at ${COMPANY.email}
+                    ${isAdmin ? 'Internal transaction record. PayPal Payment Verified.' : `This is an automatic confirmation. For support contact us at ${COMPANY.email}`}
                 </div>
             </div>
         </div>
@@ -134,7 +137,7 @@ function buildExcursionInvoiceTemplate(order) {
     </html>`;
 }
 
-function buildTransferInvoiceTemplate(order) {
+function buildTransferInvoiceTemplate(order, isAdmin = false) {
     const {
         orderNumber, customer, transferType, pickUpLocation, destination,
         numPassengers, pickUpDate, flightNumber, arrivalTime, pricing, createdAt
@@ -143,9 +146,18 @@ function buildTransferInvoiceTemplate(order) {
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(pickUpDate);
     const isQuoteRequest = !pricing || pricing.totalPrice === 0;
-    const mainTitle = isQuoteRequest ? "TRANSFER QUOTATION REQUEST" : "TRANSFER BOOKING CONFIRMED";
+    
+    // Títulos y Colores dinámicos
+    const mainTitle = isAdmin ? "NEW TRANSFER REQUEST" : (isQuoteRequest ? "TRANSFER QUOTATION REQUEST" : "TRANSFER BOOKING CONFIRMED");
     const statusColor = isQuoteRequest ? "#0ea5e9" : "#10b981";
     const priceDisplay = isQuoteRequest ? "PENDING QUOTE" : formatCurrency(pricing.totalPrice);
+
+    // Lógica del botón: Si es Admin, el botón va al WhatsApp del CLIENTE. Si es Cliente, va al de la EMPRESA.
+    const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
+    const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : (isQuoteRequest ? 'CONTACT AGENT' : 'CONFIRM WITH AGENT');
+    const whatsappMessage = isAdmin 
+        ? `Hello ${customer.fullName}, I am contacting you regarding your ExpediNap transfer request ${orderNumber}`
+        : `Hello, I have a question about order ${orderNumber}`;
 
     return `
     <!DOCTYPE html>
@@ -172,7 +184,7 @@ function buildTransferInvoiceTemplate(order) {
     <body>
         <div class="container">
             <div class="header"><img src="https://res.cloudinary.com/dfwpolska/image/upload/v1769135560/logo-expedinap-horizontal.png" alt="ExpediNap" style="max-width: 250px; height: auto;"></div>
-            <div class="status-bar">ORDER: <strong>${orderNumber}</strong> | REQUESTED ON: ${bookingDateStr}</div>
+            <div class="status-bar">ORDER: <strong>${orderNumber}</strong> | ${isAdmin ? 'ADMIN NOTIFICATION' : `REQUESTED ON: ${bookingDateStr}`}</div>
             <div class="content">
                 <div style="text-align: center; margin-bottom: 25px;">
                     <h2 style="color: ${statusColor}; margin: 0;">${mainTitle}</h2>
@@ -206,13 +218,15 @@ function buildTransferInvoiceTemplate(order) {
                 </div>
                 <div class="recommendations">
                     <strong>📢 Info:</strong><br>
-                    ${isQuoteRequest ? '✅ Request received. We will contact you shortly.' : '✅ Price confirmed. Pay the driver in cash or ask for PayPal.'}
+                    ${isAdmin ? 'This is an internal notification. Review the details and contact the client to confirm.' : 
+                    (isQuoteRequest ? '✅ Request received. We will contact you shortly.' : '✅ Price confirmed. Pay the driver in cash or ask for PayPal.')}
                     <br>✅ Our driver will have an <strong>ExpediNap</strong> sign.
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
-                    <a href="https://wa.me/${COMPANY.phone}?text=Hello, I have a question about order ${orderNumber}" class="btn-whatsapp">
-                        ${isQuoteRequest ? 'CONTACT AGENT' : 'CONFIRM WITH AGENT'}
+                    <a href="https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}" class="btn-whatsapp">
+                        ${buttonText}
                     </a>
+                    ${isAdmin ? `<br><a href="mailto:${customer.email}" style="font-size: 12px; color: #64748b; display: block; margin-top: 10px;">Send Email to Customer</a>` : ''}
                 </div>
             </div>
             <div class="footer">
@@ -225,7 +239,7 @@ function buildTransferInvoiceTemplate(order) {
     </html>`;
 }
 
-function buildYachtInvoiceTemplate(order) {
+function buildYachtInvoiceTemplate(order, isAdmin = false) {
     const {
         orderNumber, customer, yachtName, destination, duration, timeTrip,
         travelDate, pricing, createdAt, status, isAvailable
@@ -234,9 +248,18 @@ function buildYachtInvoiceTemplate(order) {
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(travelDate);
     const isConfirmed = status === 'confirmed' && isAvailable;
-    const mainTitle = isConfirmed ? "YACHT BOOKING CONFIRMED" : "YACHT BOOKING REQUEST";
+    
+    // Títulos dinámicos
+    const mainTitle = isAdmin ? "NEW YACHT REQUEST" : (isConfirmed ? "YACHT BOOKING CONFIRMED" : "YACHT BOOKING REQUEST");
     const statusColor = isConfirmed ? "#10b981" : "#f59e0b";
     const yachtDisplayName = (yachtName || "Luxury Yacht").toUpperCase();
+
+    // Lógica de Botones (WhatsApp)
+    const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
+    const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : (isConfirmed ? 'VIEW DOCK LOCATION' : 'CONTACT AGENT');
+    const whatsappMessage = isAdmin 
+        ? `Hello ${customer.fullName}, I am contacting you regarding your Yacht booking (${yachtDisplayName}) order ${orderNumber}`
+        : `Hello, I have a question about yacht order ${orderNumber}`;
 
     return `
     <!DOCTYPE html>
@@ -264,7 +287,7 @@ function buildYachtInvoiceTemplate(order) {
     <body>
         <div class="container">
             <div class="header"><img src="https://res.cloudinary.com/dfwpolska/image/upload/v1769135560/logo-expedinap-horizontal.png" alt="ExpediNap" style="max-width: 250px; height: auto;"></div>
-            <div class="status-bar">ORDER: <strong>${orderNumber}</strong> | REQUESTED ON: ${bookingDateStr}</div>
+            <div class="status-bar">ORDER: <strong>${orderNumber}</strong> | ${isAdmin ? 'ADMIN NOTIFICATION' : `REQUESTED ON: ${bookingDateStr}`}</div>
             <div class="content">
                 <div style="text-align: center; margin-bottom: 25px;">
                     <h2 style="color: ${statusColor}; margin: 0;">${mainTitle}</h2>
@@ -291,13 +314,15 @@ function buildYachtInvoiceTemplate(order) {
                 </div>
                 <div class="recommendations">
                     <strong>📢 Info:</strong><br>
-                    ${isConfirmed ? '✅ <strong>Confirmed!</strong> Arrive 20 mins before departure.' : '⏳ Verifying availability for your date.'}
+                    ${isAdmin ? 'Review availability and contact the client to finalize the booking.' : 
+                    (isConfirmed ? '✅ <strong>Confirmed!</strong> Arrive 20 mins before departure.' : '⏳ Verifying availability for your date.')}
                     <br>✅ Includes: Crew, fuel, ice, and water.
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
-                    <a href="https://wa.me/${COMPANY.phone}?text=Hello, I have a question about yacht order ${orderNumber}" class="btn-whatsapp">
-                        ${isConfirmed ? 'VIEW DOCK LOCATION' : 'CONTACT AGENT'}
+                    <a href="https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}" class="btn-whatsapp">
+                        ${buttonText}
                     </a>
+                    ${isAdmin ? `<br><a href="mailto:${customer.email}" style="font-size: 12px; color: #64748b; display: block; margin-top: 10px;">Send Email to Customer</a>` : ''}
                 </div>
             </div>
             <div class="footer">
