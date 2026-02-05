@@ -6,7 +6,7 @@ const COMPANY = {
     email: "info@expedinap.com",
     website: "https://www.expedinap.com",
     name: "ExpediNap Team",
-    rnc: "30930484344"
+    rnc: "028-0091840-7"
 };
 
 function buildExcursionInvoiceTemplate(order, isAdmin = false) {

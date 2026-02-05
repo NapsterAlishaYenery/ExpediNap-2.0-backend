@@ -25,6 +25,20 @@ exports.createTransferOrder = async (req, res) => {
         } = req.body;
 
 
+        // --- VALIDACIÓN DE FECHA (SEGURIDAD BACKEND) ---
+        const selectedDate = new Date(pickUpDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate <= today) {
+            return res.status(400).json({
+                ok: false,
+                message: "Invalid pick-up date. Transfers must be scheduled at least 24 hours in advance.",
+                type: "INVALID_DATE"
+            });
+        }
+
+
         const nuevaOrden = new TransferOrder({
             orderNumber: generarNumeroOrden(),
             customer: {
@@ -45,6 +59,7 @@ exports.createTransferOrder = async (req, res) => {
             },
             status: 'pending'
         });
+
 
         const ordenGuardada = await nuevaOrden.save();
 

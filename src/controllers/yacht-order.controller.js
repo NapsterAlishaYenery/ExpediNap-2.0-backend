@@ -21,7 +21,21 @@ exports.createYachtOrder = async (req, res) => {
             phone,
         } = req.body;
 
+        // --- VALIDACIÓN DE FECHA (SEGURIDAD BACKEND) ---
+        const selectedDate = new Date(travelDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate <= today) {
+            return res.status(400).json({
+                ok: false,
+                message: "Invalid travel date. Yacht bookings must be made at least 24 hours in advance.",
+                type: "INVALID_DATE"
+            });
+        }
+
         const yachtData = await Yacht.findById(yachtId);
+
         if (!yachtData) {
             return res.status(404).json({
                 ok: false,

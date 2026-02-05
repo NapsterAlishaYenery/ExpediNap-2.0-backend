@@ -24,6 +24,19 @@ exports.createExcursionOrder = async (req, res) => {
             hotelNumber
         } = req.body;
 
+        // --- VALIDACIÓN DE FECHA (SEGURIDAD BACKEND) ---
+        const selectedDate = new Date(travelDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate <= today) {
+            return res.status(400).json({
+                ok: false,
+                message: "Invalid travel date. Bookings must be made at least 24 hours in advance.",
+                type: "INVALID_DATE"
+            });
+        }
+
         const excursionData = await Excursion.findById(excursionId);
 
 
@@ -304,6 +317,7 @@ exports.updateExcursionOrder = async (req, res) => {
                 const emailHtml = buildExcursionInvoiceTemplate(orderUpdated, false);
                 await enviarEmail({
                     to: orderUpdated.customer.email,
+                    bcc: process.env.CONTACT_EMAIL_RECEIVER,
                     subject: `UPDATED BOOKING: ${orderUpdated.orderNumber}`,
                     html: emailHtml
                 });

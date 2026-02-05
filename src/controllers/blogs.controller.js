@@ -37,7 +37,7 @@ exports.createBlog = async (req, res) => {
         res.status(201).json({
             ok: true,
             data: newBlog,
-            message: 'New Blog Added sussesfull'
+            message: 'New Blog Added sussesfully'
         });
 
     } catch (error) {
