@@ -12,8 +12,12 @@ const COMPANY = {
 function buildExcursionInvoiceTemplate(order, isAdmin = false) {
     const {
         orderNumber, customer, pax, pricing, createdAt,
-        excursionName, hotelName, hotelNumber, travelDate
+        excursionName, hotelName, hotelNumber, travelDate,
+        payPalOrderId
     } = order;
+
+    // Detectamos si es PayPal
+    const isPayPal = !!payPalOrderId;
 
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(travelDate);
@@ -23,7 +27,7 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
     const statusBarText = isAdmin ? 'ADMIN NOTIFICATION | PAYMENT RECEIVED' : `BOOKED ON: ${bookingDateStr}`;
     const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
     const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : 'CONFIRM PICKUP VIA WHATSAPP';
-    const whatsappMessage = isAdmin 
+    const whatsappMessage = isAdmin
         ? `Hello ${customer.fullName}, I am contacting you regarding your booking for ${nombreParaMostrar} (Order ${orderNumber})`
         : `Hello, I just paid for the excursion ${nombreParaMostrar}. My order is ${orderNumber}. Could you confirm my pickup time?`;
 
@@ -108,12 +112,15 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                 <div class="totals">
                     <div class="total-row"><span>Subtotal:</span><span>${formatCurrency(pricing.subtotal)}</span></div>
                     <div class="total-row"><span>Tax (18%):</span><span>${formatCurrency(pricing.tax)}</span></div>
-                    <div class="total-row grand-total"><span>TOTAL PAID:</span><span>${formatCurrency(pricing.totalPrice)}</span></div>
+                    <div class="total-row grand-total">
+                        <span>${isPayPal ? 'TOTAL PAID: ' : 'TOTAL TO PAY: '}</span>
+                        <span>${formatCurrency(pricing.totalPrice)}</span>
+                    </div>
                 </div>
                 <div style="clear: both;"></div>
                 <div class="recommendations">
-                    ${isAdmin ? `<strong>📢 Admin Action Required:</strong><br>Check availability for the pickup at <b>${hotelName}</b> and send the exact time to the client via WhatsApp.` : 
-                    `<strong>📢 Recommendations:</strong><br>
+                    ${isAdmin ? `<strong>📢 Admin Action Required:</strong><br>Check availability for the pickup at <b>${hotelName}</b> and send the exact time to the client via WhatsApp.` :
+            `<strong>📢 Recommendations:</strong><br>
                     ✅ Sunglasses, hat, and biodegradable sunscreen.<br>
                     ✅ Please arrive 15 minutes before pickup time.<br>
                     ✅ Presentation of this digital receipt is required.`}
@@ -129,7 +136,12 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                 Punta Cana, Dominican Republic<br>
                 RNC: ${COMPANY.rnc} | <a href="${COMPANY.website}" style="color: #94a3b8; text-decoration: underline;">www.expedinap.com</a><br><br>
                 <div style="border-top: 1px solid #475569; padding-top: 15px; margin-top: 15px; font-size: 10px; color: #94a3b8;">
-                    ${isAdmin ? 'Internal transaction record. PayPal Payment Verified.' : `This is an automatic confirmation. For support contact us at ${COMPANY.email}`}
+                    ${isAdmin
+            ? (isPayPal
+                ? `Internal transaction record. PayPal Payment Verified (ID: ${payPalOrderId}).`
+                : 'Internal record. MANUAL RESERVATION - Pending payment via WhatsApp/Transfer.')
+            : `This is an automatic confirmation. For support contact us at ${COMPANY.email}`
+        }
                 </div>
             </div>
         </div>
@@ -146,7 +158,7 @@ function buildTransferInvoiceTemplate(order, isAdmin = false) {
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(pickUpDate);
     const isQuoteRequest = !pricing || pricing.totalPrice === 0;
-    
+
     // Títulos y Colores dinámicos
     const mainTitle = isAdmin ? "NEW TRANSFER REQUEST" : (isQuoteRequest ? "TRANSFER QUOTATION REQUEST" : "TRANSFER BOOKING CONFIRMED");
     const statusColor = isQuoteRequest ? "#0ea5e9" : "#10b981";
@@ -155,7 +167,7 @@ function buildTransferInvoiceTemplate(order, isAdmin = false) {
     // Lógica del botón: Si es Admin, el botón va al WhatsApp del CLIENTE. Si es Cliente, va al de la EMPRESA.
     const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
     const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : (isQuoteRequest ? 'CONTACT AGENT' : 'CONFIRM WITH AGENT');
-    const whatsappMessage = isAdmin 
+    const whatsappMessage = isAdmin
         ? `Hello ${customer.fullName}, I am contacting you regarding your ExpediNap transfer request ${orderNumber}`
         : `Hello, I have a question about order ${orderNumber}`;
 
@@ -218,8 +230,8 @@ function buildTransferInvoiceTemplate(order, isAdmin = false) {
                 </div>
                 <div class="recommendations">
                     <strong>📢 Info:</strong><br>
-                    ${isAdmin ? 'This is an internal notification. Review the details and contact the client to confirm.' : 
-                    (isQuoteRequest ? '✅ Request received. We will contact you shortly.' : '✅ Price confirmed. Pay the driver in cash or ask for PayPal.')}
+                    ${isAdmin ? 'This is an internal notification. Review the details and contact the client to confirm.' :
+            (isQuoteRequest ? '✅ Request received. We will contact you shortly.' : '✅ Price confirmed. Pay the driver in cash or ask for PayPal.')}
                     <br>✅ Our driver will have an <strong>ExpediNap</strong> sign.
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
@@ -248,7 +260,7 @@ function buildYachtInvoiceTemplate(order, isAdmin = false) {
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(travelDate);
     const isConfirmed = status === 'confirmed' && isAvailable;
-    
+
     // Títulos dinámicos
     const mainTitle = isAdmin ? "NEW YACHT REQUEST" : (isConfirmed ? "YACHT BOOKING CONFIRMED" : "YACHT BOOKING REQUEST");
     const statusColor = isConfirmed ? "#10b981" : "#f59e0b";
@@ -257,7 +269,7 @@ function buildYachtInvoiceTemplate(order, isAdmin = false) {
     // Lógica de Botones (WhatsApp)
     const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
     const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : (isConfirmed ? 'VIEW DOCK LOCATION' : 'CONTACT AGENT');
-    const whatsappMessage = isAdmin 
+    const whatsappMessage = isAdmin
         ? `Hello ${customer.fullName}, I am contacting you regarding your Yacht booking (${yachtDisplayName}) order ${orderNumber}`
         : `Hello, I have a question about yacht order ${orderNumber}`;
 
@@ -314,8 +326,8 @@ function buildYachtInvoiceTemplate(order, isAdmin = false) {
                 </div>
                 <div class="recommendations">
                     <strong>📢 Info:</strong><br>
-                    ${isAdmin ? 'Review availability and contact the client to finalize the booking.' : 
-                    (isConfirmed ? '✅ <strong>Confirmed!</strong> Arrive 20 mins before departure.' : '⏳ Verifying availability for your date.')}
+                    ${isAdmin ? 'Review availability and contact the client to finalize the booking.' :
+            (isConfirmed ? '✅ <strong>Confirmed!</strong> Arrive 20 mins before departure.' : '⏳ Verifying availability for your date.')}
                     <br>✅ Includes: Crew, fuel, ice, and water.
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
@@ -339,7 +351,7 @@ function buildContactFormTemplate(contactData, isAdmin = false) {
     const { fullName, email, phone, message } = contactData;
     const dateStr = formatAppDate(new Date());
 
-   
+
     const titleText = isAdmin ? "NEW INQUIRY RECEIVED" : "MESSAGE CONFIRMATION";
     const greetingText = isAdmin ? "You have a new message from the website:" : "Thanks for reaching out to us!";
 
@@ -416,9 +428,9 @@ function buildContactFormTemplate(contactData, isAdmin = false) {
     </body>
     </html>`;
 }
-module.exports = { 
-    buildExcursionInvoiceTemplate, 
-    buildTransferInvoiceTemplate, 
+module.exports = {
+    buildExcursionInvoiceTemplate,
+    buildTransferInvoiceTemplate,
     buildYachtInvoiceTemplate,
-    buildContactFormTemplate 
+    buildContactFormTemplate
 };

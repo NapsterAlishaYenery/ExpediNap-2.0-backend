@@ -10,6 +10,119 @@ const generarNumeroOrdenEx = () => {
     return `EX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
 
+// --- NUEVO MÉTODO PARA RESERVAS MANUALES (WhatsApp / Carnet futuro) ---
+exports.createManualExcursionOrder = async (req, res) => {
+    try {
+        const {
+            excursionId,
+            fullName,
+            email,
+            phone,
+            adults,
+            children,
+            travelDate,
+            hotelName,
+            hotelNumber
+        } = req.body;
+
+        // 1. Validación de fecha (Seguridad)
+        const selectedDate = new Date(travelDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate <= today) {
+            return res.status(400).json({
+                ok: false,
+                message: "Invalid travel date. Bookings must be made at least 24 hours in advance.",
+                type: "INVALID_DATE"
+            });
+        }
+
+        // 2. Buscar datos de la excursión
+        const excursionData = await Excursion.findById(excursionId);
+        if (!excursionData) {
+            return res.status(404).json({
+                ok: false,
+                message: "Selected excursion not found",
+                type: "NOT_FOUND"
+            });
+        }
+
+        // 3. Cálculos de Precios e Impuestos (Mantenemos tu lógica exacta)
+        const adultPriceSnap = excursionData.offerPriceUsd;
+        const childPriceSnap = excursionData.childPriceUsd || 0;
+        const subtotal = (adults * adultPriceSnap) + ((children || 0) * childPriceSnap);
+        
+        const taxRate = 0.18;
+        const taxAmount = Number((subtotal * taxRate).toFixed(2));
+        const finalTotalPrice = Number((subtotal + taxAmount).toFixed(2));
+
+        const internalOrderNumber = generarNumeroOrdenEx();
+
+        // 4. Crear la orden en la Base de Datos
+        const nuevaOrden = new ExcursionOrder({
+            orderNumber: internalOrderNumber,
+            customer: { fullName, email, phone },
+            hotelName: hotelName || "Pick-up to be coordinated / Airbnb",
+            hotelNumber: hotelNumber || "N/A",
+            excursionId: excursionData._id,
+            excursionName: excursionData.name,
+            location: excursionData.location,
+            pax: { adults, children: children || 0 },
+            travelDate,
+            pricing: {
+                adultPriceSnap,
+                childPriceSnap,
+                subtotal: Number(subtotal.toFixed(2)),
+                tax: taxAmount,
+                totalPrice: finalTotalPrice,
+                currency: 'USD'
+            },
+            status: 'pending' // Estado inicial hasta que paguen manualmente
+        });
+
+        const ordenGuardada = await nuevaOrden.save();
+
+        // 5. Envío de correos de notificación (Avisarte a ti que hay una venta pendiente)
+        try {
+            const emailHtmlAdmin = buildExcursionInvoiceTemplate(ordenGuardada, true);
+            await enviarEmail({
+                to: process.env.CONTACT_EMAIL_RECEIVER,
+                subject: `📩 MANUAL RESERVATION: ${ordenGuardada.orderNumber} - ${fullName}`,
+                html: emailHtmlAdmin
+            });
+            
+            // Opcional: Enviar correo al cliente diciendo "Estamos procesando tu solicitud"
+            const emailHtmlClient = buildExcursionInvoiceTemplate(ordenGuardada, false);
+            await enviarEmail({
+                to: email,
+                subject: `ExpediNap - Booking Request Received: ${ordenGuardada.orderNumber}`,
+                html: emailHtmlClient
+            });
+        } catch (mailErr) {
+            console.error("[MAIL-ERROR]:", mailErr.message);
+        }
+
+        // 6. Respuesta al Frontend
+        return res.status(201).json({
+            ok: true,
+            message: 'Booking request created successfully. Coordination via WhatsApp required.',
+            data: ordenGuardada, 
+        });
+
+    } catch (error) {
+        console.error("Error creating manual order:", error);
+        res.status(500).json({
+            ok: false,
+            message: "Internal server error",
+            type: "SERVER_ERROR"
+        });
+    }
+};
+
+
+
+// Metodos para crear order con paypal 
 exports.createExcursionOrder = async (req, res) => {
     try {
         const {

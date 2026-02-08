@@ -11,11 +11,19 @@ const validateExcursionOrder = require('../middleware/validate-order-excursion.m
 const excursionOrderController = require('../controllers/excursion-order.controller');
 
 
+// ==========================================
+// RUTAS DE PAGO (DESACTIVADAS TEMPORALMENTE)
+// ==========================================
 // Angular llamará aquí después de que el usuario apruebe el pago
-router.post('/paypal/capture/:orderId', excursionOrderController.captureExcursionPayment);
+// router.post('/paypal/capture/:orderId', excursionOrderController.captureExcursionPayment);
+// router.post('/request', [writeLimiter, validateExcursionOrder.create], excursionOrderController.createExcursionOrder);
 
 
-router.post('/request', [writeLimiter, validateExcursionOrder.create], excursionOrderController.createExcursionOrder);
+// ==========================================
+// NUEVA RUTA: RESERVA MANUAL (WHATSAPP)
+// ==========================================
+// Esta es la que Angular usará ahora
+router.post('/manual-request', [writeLimiter, validateExcursionOrder.create], excursionOrderController.createManualExcursionOrder);
 
 // Obtener todas las órdenes 
 router.get('/all-orders', [authMiddleware, isAdminMiddleware], excursionOrderController.getAllExcursionOrders);
