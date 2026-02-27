@@ -1,8 +1,9 @@
 const TransferOrder = require("../models/transfer-order.model");
 
-
 const { buildTransferInvoiceTemplate } = require('../templates/emailTemplates');
 const { enviarEmail } = require('../services/mail/emailService');
+
+const ncfService = require('../services/ncf.service');
 
 const generarNumeroOrden = () => {
     return `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -10,7 +11,6 @@ const generarNumeroOrden = () => {
 
 exports.createTransferOrder = async (req, res) => {
     try {
-
         const {
             fullName,
             email,
@@ -24,8 +24,7 @@ exports.createTransferOrder = async (req, res) => {
             arrivalTime
         } = req.body;
 
-
-        // --- VALIDACIÓN DE FECHA (SEGURIDAD BACKEND) ---
+        // 1. Validación de fecha
         const selectedDate = new Date(pickUpDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -38,9 +37,24 @@ exports.createTransferOrder = async (req, res) => {
             });
         }
 
+        const internalOrderNumber = generarNumeroOrden();
 
+        // --- ASIGNACIÓN DE NCF ---
+        let datosFiscales;
+        try {
+            // Usamos B02 por defecto (Consumo)
+            datosFiscales = await ncfService.getAndUseNextNcf('B02', internalOrderNumber);
+        } catch (ncfErr) {
+            return res.status(500).json({
+                ok: false,
+                message: "Service temporarily unavailable: NCF Pool empty.",
+                error: ncfErr.message
+            });
+        }
+
+        // 2. Crear la orden con datos fiscales
         const nuevaOrden = new TransferOrder({
-            orderNumber: generarNumeroOrden(),
+            orderNumber: internalOrderNumber,
             customer: {
                 fullName,
                 email,
@@ -54,25 +68,26 @@ exports.createTransferOrder = async (req, res) => {
             flightNumber: flightNumber || null,
             arrivalTime: arrivalTime || null,
             pricing: {
-                totalPrice: 0,
+                totalPrice: 0, // Se mantiene en 0 hasta que cotices
                 currency: 'USD'
             },
-            status: 'pending'
+            status: 'pending',
+            fiscalData: datosFiscales // <--- NCF ASIGNADO
         });
-
 
         const ordenGuardada = await nuevaOrden.save();
 
+        // 3. Envío de correos
         try {
-
+            // Correo al Cliente
             const emailHtml = buildTransferInvoiceTemplate(ordenGuardada, false);
-
             await enviarEmail({
                 to: email,
                 subject: `TRANSFER REQUEST: ${ordenGuardada.orderNumber} - ${transferType.toUpperCase()}`,
                 html: emailHtml,
             });
 
+            // Correo al Admin
             const htmlAdmin = buildTransferInvoiceTemplate(ordenGuardada, true);
             await enviarEmail({
                 to: process.env.CONTACT_EMAIL_RECEIVER,
@@ -80,15 +95,13 @@ exports.createTransferOrder = async (req, res) => {
                 html: htmlAdmin
             });
 
-
         } catch (mailError) {
-
             console.error("[MAIL-ERROR] Transfer Order Notification:", mailError.message);
         }
 
         return res.status(201).json({
             ok: true,
-            message: 'Transfer request successfully received',
+            message: 'Transfer request successfully received with NCF',
             data: ordenGuardada
         });
 
@@ -101,6 +114,7 @@ exports.createTransferOrder = async (req, res) => {
                 type: "VALIDATION_ERROR"
             });
         }
+        console.error("Error creating transfer order:", error);
         res.status(500).json({
             ok: false,
             message: "Could not process transfer request",
@@ -108,6 +122,8 @@ exports.createTransferOrder = async (req, res) => {
         });
     }
 };
+
+
 
 exports.getAllTransferOrders = async (req, res) => {
     try {
@@ -317,6 +333,7 @@ exports.purgeTransferOrder = async (req, res) => {
             });
         }
 
+        // 1. Verificación de estado (Solo desde la papelera)
         if (order.status !== 'deleted') {
             return res.status(400).json({
                 ok: false,
@@ -325,12 +342,22 @@ exports.purgeTransferOrder = async (req, res) => {
             });
         }
 
+        // 2. PROTECCIÓN FISCAL: Si ya tiene NCF, no se borra.
+        // Aunque el Transfer sea "pending" y cueste 0 ahora mismo, 
+        // ya quemó un número de NCF en el Pool al crearse.
+        if (order.fiscalData && order.fiscalData.ncf) {
+            return res.status(400).json({
+                ok: false,
+                message: `Fiscal Integrity: This transfer has an assigned NCF (${order.fiscalData.ncf}) and cannot be purged.`,
+                type: "FISCAL_PROTECTION_ERROR"
+            });
+        }
 
         await TransferOrder.findByIdAndDelete(id);
 
         return res.status(200).json({
             ok: true,
-            message: "Order permanently purged from database",
+            message: "Transfer order permanently purged from database",
             data: order
         });
 

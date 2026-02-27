@@ -4,6 +4,7 @@ const Yacht = require("../models/yachts.model");
 const { buildYachtInvoiceTemplate } = require('../templates/emailTemplates');
 const { enviarEmail } = require('../services/mail/emailService');
 
+const ncfService = require('../services/ncf.service');
 
 const generarNumeroOrden = () => {
     return `YT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -21,7 +22,7 @@ exports.createYachtOrder = async (req, res) => {
             phone,
         } = req.body;
 
-        // --- VALIDACIÓN DE FECHA (SEGURIDAD BACKEND) ---
+        // 1. VALIDACIÓN DE FECHA
         const selectedDate = new Date(travelDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -44,25 +45,21 @@ exports.createYachtOrder = async (req, res) => {
             });
         }
 
+        // 2. LÓGICA DE PRECIOS
         let basePrice = 0;
         let timeTripSelected = "";
-
 
         const destKey = destination === 'Saona Island' ? 'saonaPrice' :
             destination === 'Catalina Island' ? 'catalinaPrice' : null;
 
         if (destKey && yachtData[destKey]) {
             basePrice = duration === 'Full Day' ? yachtData[destKey].fullDay : yachtData[destKey].halfDay;
-
             if (duration === 'Full Day') {
                 timeTripSelected = yachtData.timeAvailable.fullDay;
-
             } else {
                 timeTripSelected = yachtData.timeAvailable.halfDay.join(' / ');
             }
-
-        }
-        else if (destination === 'River Sunset' && yachtData.riverSunset) {
+        } else if (destination === 'River Sunset' && yachtData.riverSunset) {
             basePrice = yachtData.riverSunset.price;
             timeTripSelected = yachtData.riverSunset.timeTrip;
         }
@@ -78,8 +75,24 @@ exports.createYachtOrder = async (req, res) => {
         const tax = Number((basePrice * 0.18).toFixed(2));
         const totalPrice = Number((basePrice + tax).toFixed(2));
 
+        // 3. ASIGNACIÓN DE NCF
+        const internalOrderNumber = generarNumeroOrden();
+        let datosFiscales;
+
+        try {
+            // Asignamos B02 (Consumo) por defecto
+            datosFiscales = await ncfService.getAndUseNextNcf('B02', internalOrderNumber);
+        } catch (ncfErr) {
+            return res.status(500).json({
+                ok: false,
+                message: "NCF Error: No sequence numbers available.",
+                error: ncfErr.message
+            });
+        }
+
+        // 4. CREAR LA ORDEN CON LOS DATOS FISCALES
         const nuevaOrden = new YachtOrder({
-            orderNumber: generarNumeroOrden(),
+            orderNumber: internalOrderNumber,
             customer: { fullName, email, phone },
             yachtId: yachtData._id,
             yachtName: yachtData.name,
@@ -93,13 +106,14 @@ exports.createYachtOrder = async (req, res) => {
                 totalPrice,
                 currency: 'USD'
             },
-            status: 'pending'
+            status: 'pending',
+            fiscalData: datosFiscales // <--- NCF ASIGNADO
         });
 
         const ordenGuardada = await nuevaOrden.save();
 
+        // 5. ENVÍO DE CORREOS (Usando el template con la caja fiscal)
         try {
-           // 1. Correo para el Cliente
             const emailHtmlClient = buildYachtInvoiceTemplate(ordenGuardada, false);
             await enviarEmail({
                 to: email,
@@ -107,7 +121,6 @@ exports.createYachtOrder = async (req, res) => {
                 html: emailHtmlClient,
             });
 
-            // 2. Correo para el Admin 
             const emailHtmlAdmin = buildYachtInvoiceTemplate(ordenGuardada, true);
             await enviarEmail({
                 to: process.env.CONTACT_EMAIL_RECEIVER,
@@ -115,35 +128,30 @@ exports.createYachtOrder = async (req, res) => {
                 html: emailHtmlAdmin
             });
         } catch (mailError) {
-           console.error("[MAIL-ERROR] Yacht Order Notification:", mailError.message);
+            console.error("[MAIL-ERROR] Yacht Order Notification:", mailError.message);
         }
 
         return res.status(201).json({
             ok: true,
-            message: 'Yacht booking request successfully received',
+            message: 'Yacht booking request successfully received with NCF',
             data: ordenGuardada
         });
 
     } catch (error) {
-
         console.error("[CREATE-YACHT-ORDER-ERROR]:", error);
-
         if (error.name === 'ValidationError') {
             const firstError = Object.values(error.errors)[0].message;
             return res.status(400).json({
-                ok: false,
-                message: firstError,
-                type: "VALIDATION_ERROR"
+                ok: false, message: firstError, type: "VALIDATION_ERROR"
             });
         }
-
         res.status(500).json({
-            ok: false,
-            message: "Internal server error",
-            type: "SERVER_ERROR"
+            ok: false, message: "Internal server error", type: "SERVER_ERROR"
         });
     }
 };
+
+
 
 exports.getAllYachtOrders = async (req, res) => {
     try {
@@ -348,20 +356,33 @@ exports.purgeYachtOrder = async (req, res) => {
             });
         }
 
+        // 1. Verificación de estado (Solo desde la papelera)
         if (order.status !== 'deleted') {
             return res.status(400).json({
                 ok: false,
                 message: "Only orders with 'deleted' status can be permanently purged",
                 type: "BAD_REQUEST"
-
             });
         }
+
+        // 2. PROTECCIÓN FISCAL: Si tiene NCF, no se puede purgar.
+        // En Yates es vital porque el NCF ya tiene asociado un ITBIS (18%) y un monto.
+        if (order.fiscalData && order.fiscalData.ncf) {
+            return res.status(400).json({
+                ok: false,
+                message: `This yacht order contains fiscal data (NCF: ${order.fiscalData.ncf}) and cannot be purged for auditing purposes.`,
+                type: "FISCAL_PROTECTION_ERROR"
+            });
+        }
+
         await YachtOrder.findByIdAndDelete(id);
+
         return res.status(200).json({
             ok: true,
-            message: "Order permanently purged",
+            message: "Order permanently purged from database",
             data: order
         });
+
     } catch (error) {
         res.status(500).json({
             ok: false,

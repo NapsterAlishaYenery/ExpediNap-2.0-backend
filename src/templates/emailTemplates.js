@@ -13,15 +13,20 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
     const {
         orderNumber, customer, pax, pricing, createdAt,
         excursionName, hotelName, hotelNumber, travelDate,
-        payPalOrderId
+        paypalOrderId, fiscalData // <--- Extraemos fiscalData
     } = order;
 
     // Detectamos si es PayPal
-    const isPayPal = !!payPalOrderId;
+    const isPayPal = !!paypalOrderId;
 
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(travelDate);
     const nombreParaMostrar = (excursionName || "Excursion").toUpperCase();
+
+    // Lógica de NCF (si existe)
+    const hasFiscalData = !!fiscalData && !!fiscalData.ncf;
+    const ncfLabel = fiscalData?.tipoNcf === 'B16' ? 'EXPORT INVOICE' : 'CONSUMER INVOICE';
+    const ncfVencimientoStr = fiscalData?.ncfVencimiento ? formatAppDate(fiscalData.ncfVencimiento) : '';
 
     // Lógica dinámica
     const statusBarText = isAdmin ? 'ADMIN NOTIFICATION | PAYMENT RECEIVED' : `BOOKED ON: ${bookingDateStr}`;
@@ -46,6 +51,7 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
             .info-grid { margin-bottom: 25px; }
             .info-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; display: block; margin-top: 10px; }
             .info-value { font-size: 14px; font-weight: 500; }
+            .fiscal-box { background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #1e40af; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th { background: #f1f5f9; text-align: left; padding: 10px; font-size: 12px; color: #475569; }
             td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
@@ -67,6 +73,25 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                 ORDER: <strong>${orderNumber}</strong> | ${statusBarText}
             </div>
             <div class="content">
+                
+                ${hasFiscalData ? `
+                <div class="fiscal-box">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="padding-right: 10px;">
+                            <span class="info-label" style="margin-top:0;">Invoice Type</span>
+                            <span class="info-value" style="color: #1e40af; display: block;">${ncfLabel}</span>
+                        </div>
+                        <div style="text-align: right; padding-left: 20px;">
+                            <span class="info-label" style="margin-top:0;">NCF Number</span>
+                            <span class="info-value" style="font-family: monospace; font-size: 16px; letter-spacing: 1px; display: block; white-space: nowrap;">${fiscalData.ncf}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 10px; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 5px;">
+                        NCF Valid until: ${ncfVencimientoStr}
+                    </div>
+                </div>
+                ` : ''}
+
                 <div class="section-title">📍 Tour & Pickup Details</div>
                 <div class="info-grid">
                     <span class="info-label">Excursion</span>
@@ -74,6 +99,7 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                     <span class="info-label">Travel Date</span>
                     <span class="info-value" style="color: #1e40af; font-weight: bold;">${travelDateStr}</span>
                 </div>
+
                 <div class="section-title">👤 Customer Information</div>
                 <div style="margin-bottom: 25px;">
                     <span class="info-label">Name</span>
@@ -83,6 +109,7 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                     <span class="info-label">Contact</span>
                     <span class="info-value">${customer.email} | ${customer.phone}</span>
                 </div>
+
                 <div class="section-title">💰 Payment Summary</div>
                 <table>
                     <thead>
@@ -128,7 +155,6 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                 <div style="text-align: center; margin-top: 30px;">
                     <p style="font-size: 14px;">${isAdmin ? 'Quick contact with customer:' : 'To confirm your exact pickup time:'}</p>
                     <a href="https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}" class="btn-whatsapp">${buttonText}</a>
-                    ${isAdmin ? `<br><a href="mailto:${customer.email}" style="font-size: 12px; color: #64748b; display: block; margin-top: 10px;">Send Email to Customer</a>` : ''}
                 </div>
             </div>
             <div class="footer">
@@ -138,7 +164,7 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
                 <div style="border-top: 1px solid #475569; padding-top: 15px; margin-top: 15px; font-size: 10px; color: #94a3b8;">
                     ${isAdmin
             ? (isPayPal
-                ? `Internal transaction record. PayPal Payment Verified (ID: ${payPalOrderId}).`
+                ? `Internal transaction record. PayPal Payment Verified (ID: ${paypalOrderId}).`
                 : 'Internal record. MANUAL RESERVATION - Pending payment via WhatsApp/Transfer.')
             : `This is an automatic confirmation. For support contact us at ${COMPANY.email}`
         }
@@ -152,19 +178,25 @@ function buildExcursionInvoiceTemplate(order, isAdmin = false) {
 function buildTransferInvoiceTemplate(order, isAdmin = false) {
     const {
         orderNumber, customer, transferType, pickUpLocation, destination,
-        numPassengers, pickUpDate, flightNumber, arrivalTime, pricing, createdAt
+        numPassengers, pickUpDate, flightNumber, arrivalTime, pricing, createdAt,
+        fiscalData // <--- Extraemos fiscalData
     } = order;
 
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(pickUpDate);
     const isQuoteRequest = !pricing || pricing.totalPrice === 0;
 
+    // Lógica de NCF (si existe)
+    const hasFiscalData = !!fiscalData && !!fiscalData.ncf;
+    const ncfLabel = fiscalData?.tipoNcf === 'B16' ? 'EXPORT INVOICE' : 'CONSUMER INVOICE';
+    const ncfVencimientoStr = fiscalData?.ncfVencimiento ? formatAppDate(fiscalData.ncfVencimiento) : '';
+
     // Títulos y Colores dinámicos
     const mainTitle = isAdmin ? "NEW TRANSFER REQUEST" : (isQuoteRequest ? "TRANSFER QUOTATION REQUEST" : "TRANSFER BOOKING CONFIRMED");
     const statusColor = isQuoteRequest ? "#0ea5e9" : "#10b981";
     const priceDisplay = isQuoteRequest ? "PENDING QUOTE" : formatCurrency(pricing.totalPrice);
 
-    // Lógica del botón: Si es Admin, el botón va al WhatsApp del CLIENTE. Si es Cliente, va al de la EMPRESA.
+    // Lógica del botón
     const whatsappNumber = isAdmin ? customer.phone.replace(/\D/g, '') : COMPANY.phone.replace(/\D/g, '');
     const buttonText = isAdmin ? 'WHATSAPP CUSTOMER' : (isQuoteRequest ? 'CONTACT AGENT' : 'CONFIRM WITH AGENT');
     const whatsappMessage = isAdmin
@@ -186,6 +218,7 @@ function buildTransferInvoiceTemplate(order, isAdmin = false) {
             .info-grid { margin-bottom: 25px; }
             .info-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; display: block; margin-top: 10px; }
             .info-value { font-size: 14px; font-weight: 500; }
+            .fiscal-box { background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #1e40af; }
             .highlight-box { background: #f1f5f9; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #e11d48; }
             .price-tag { font-size: 24px; font-weight: bold; color: #e11d48; }
             .footer { background: #1e293b; color: #ffffff; padding: 30px; text-align: center; font-size: 12px; }
@@ -202,6 +235,26 @@ function buildTransferInvoiceTemplate(order, isAdmin = false) {
                     <h2 style="color: ${statusColor}; margin: 0;">${mainTitle}</h2>
                     <p style="font-size: 14px; color: #64748b;">${transferType.toUpperCase()} TRANSFER</p>
                 </div>
+
+
+                ${hasFiscalData ? `
+                    <div class="fiscal-box">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="padding-right: 10px;">
+                                <span class="info-label" style="margin-top:0;">Invoice Type</span>
+                                <span class="info-value" style="color: #1e40af; display: block;">${ncfLabel}</span>
+                            </div>
+                            <div style="text-align: right; padding-left: 20px;">
+                                <span class="info-label" style="margin-top:0;">NCF Number</span>
+                                <span class="info-value" style="font-family: monospace; font-size: 16px; letter-spacing: 1px; display: block; white-space: nowrap;">${fiscalData.ncf}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 10px; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 5px;">
+                            NCF Valid until: ${ncfVencimientoStr}
+                        </div>
+                    </div>
+                    ` : ''}
+
                 <div class="section-title">🚐 Route & Schedule</div>
                 <div class="info-grid">
                     <div style="display: flex; justify-content: space-between;">
@@ -254,12 +307,18 @@ function buildTransferInvoiceTemplate(order, isAdmin = false) {
 function buildYachtInvoiceTemplate(order, isAdmin = false) {
     const {
         orderNumber, customer, yachtName, destination, duration, timeTrip,
-        travelDate, pricing, createdAt, status, isAvailable
+        travelDate, pricing, createdAt, status, isAvailable,
+        fiscalData // <--- Extraemos fiscalData
     } = order;
 
     const bookingDateStr = formatAppDate(createdAt);
     const travelDateStr = formatAppDate(travelDate);
     const isConfirmed = status === 'confirmed' && isAvailable;
+
+    // Lógica de NCF (si existe)
+    const hasFiscalData = !!fiscalData && !!fiscalData.ncf;
+    const ncfLabel = fiscalData?.tipoNcf === 'B16' ? 'EXPORT INVOICE' : 'CONSUMER INVOICE';
+    const ncfVencimientoStr = fiscalData?.ncfVencimiento ? formatAppDate(fiscalData.ncfVencimiento) : '';
 
     // Títulos dinámicos
     const mainTitle = isAdmin ? "NEW YACHT REQUEST" : (isConfirmed ? "YACHT BOOKING CONFIRMED" : "YACHT BOOKING REQUEST");
@@ -288,6 +347,7 @@ function buildYachtInvoiceTemplate(order, isAdmin = false) {
             .info-grid { margin-bottom: 25px; }
             .info-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; display: block; margin-top: 10px; }
             .info-value { font-size: 14px; font-weight: 500; }
+            .fiscal-box { background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 25px; border-left: 4px solid #1e40af; }
             .totals { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 6px; }
             .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; }
             .grand-total { font-size: 18px; font-weight: bold; color: #e11d48; border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px; }
@@ -305,6 +365,25 @@ function buildYachtInvoiceTemplate(order, isAdmin = false) {
                     <h2 style="color: ${statusColor}; margin: 0;">${mainTitle}</h2>
                     <p style="font-size: 18px; font-weight: bold; color: #1e293b;">${yachtDisplayName}</p>
                 </div>
+
+                ${hasFiscalData ? `
+                    <div class="fiscal-box">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="padding-right: 10px;">
+                                <span class="info-label" style="margin-top:0;">Invoice Type</span>
+                                <span class="info-value" style="color: #1e40af; display: block;">${ncfLabel}</span>
+                            </div>
+                            <div style="text-align: right; padding-left: 20px;">
+                                <span class="info-label" style="margin-top:0;">NCF Number</span>
+                                <span class="info-value" style="font-family: monospace; font-size: 16px; letter-spacing: 1px; display: block; white-space: nowrap;">${fiscalData.ncf}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 10px; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 5px;">
+                            NCF Valid until: ${ncfVencimientoStr}
+                        </div>
+                    </div>
+                    ` : ''}
+
                 <div class="section-title">🛥️ Charter Details</div>
                 <div class="info-grid">
                     <div style="display: flex; justify-content: space-between;">

@@ -1,5 +1,6 @@
 const { Schema, model } = require('mongoose');
 const ClientSchema = require('./schema/Client.schema');
+const FiscalData = require('./schema/fiscal-data.schema');
 
 const YachtOrderSchema = new Schema({
     orderNumber: {
@@ -82,6 +83,10 @@ const YachtOrderSchema = new Schema({
         type: String,
         trim: true,
         maxlength: [1000, 'Notes cannot exceed 1000 characters']
+    },
+    fiscalData: {
+        type: FiscalData,
+        required: false // Solo se llena cuando se confirma el pago de la reserva
     }
 }, {
     versionKey: false,

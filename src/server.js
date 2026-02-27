@@ -25,6 +25,9 @@ const orderYachRoutes = require('./routes/yacht-order.routes');
 const orderExcursionRoutes = require('./routes/excursion-order.routes');
 //Ruta pare enviar correos para contactos
 const emialSenderContactRoutes = require('./routes/email.routes');
+const ncfRoutes = require('./routes/ncf.routes');
+// importar rutas para google review
+const googleRoutes = require('./routes/review-google.routes');
 
 
 // Crear el server
@@ -78,6 +81,8 @@ app.use('/api/orders-yacht', orderYachRoutes);
 app.use('/api/orders-excursion', orderExcursionRoutes);
 //RUTA NUEVA
 app.use('/api/email', emialSenderContactRoutes);
+app.use('/api/ncf', ncfRoutes);
+app.use('/api/google', googleRoutes);
 
 // Configurar Middleware global de errores
 app.use((err, req, res, next) => {

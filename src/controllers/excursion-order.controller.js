@@ -5,6 +5,7 @@ const { enviarEmail } = require('../services/mail/emailService');
 const { buildExcursionInvoiceTemplate } = require('../templates/emailTemplates');
 
 const paypalService = require('../services/paypal/paypal.service');
+const ncfService = require('../services/ncf.service');
 
 const generarNumeroOrdenEx = () => {
     return `EX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -59,6 +60,23 @@ exports.createManualExcursionOrder = async (req, res) => {
 
         const internalOrderNumber = generarNumeroOrdenEx();
 
+        // --- ASIGNACIÓN DE NCF ---
+        // Generamos un ID temporal para la orden o usamos el internalOrderNumber 
+        // para marcarlo en el pool antes de guardar la orden.
+        let datosFiscales;
+        try {
+            // Por defecto usamos B02 (Consumo) para estas reservas manuales
+            datosFiscales = await ncfService.getAndUseNextNcf('B02', internalOrderNumber);
+        } catch (ncfErr) {
+            // Si te quedas sin NCFs en el pool, el sistema fallará. 
+            // Esto es bueno porque te avisa que debes pedir más a la DGII.
+            return res.status(500).json({
+                ok: false,
+                message: "Service temporarily unavailable: NCF Pool empty.",
+                error: ncfErr.message
+            });
+        }
+
         // 4. Crear la orden en la Base de Datos
         const nuevaOrden = new ExcursionOrder({
             orderNumber: internalOrderNumber,
@@ -78,7 +96,8 @@ exports.createManualExcursionOrder = async (req, res) => {
                 totalPrice: finalTotalPrice,
                 currency: 'USD'
             },
-            status: 'pending' // Estado inicial hasta que paguen manualmente
+            status: 'pending', // Estado inicial hasta que paguen manualmente
+            fiscalData: datosFiscales // <--- NCF ASIGNADO AQUÍ
         });
 
         const ordenGuardada = await nuevaOrden.save();
@@ -119,7 +138,6 @@ exports.createManualExcursionOrder = async (req, res) => {
         });
     }
 };
-
 
 
 // Metodos para crear order con paypal 
@@ -512,6 +530,7 @@ exports.purgeExcursionOrder = async (req, res) => {
             });
         }
 
+        // 1. Verificación de estado (Solo se purga lo que ya está en la papelera)
         if (order.status !== 'deleted') {
             return res.status(400).json({
                 ok: false,
@@ -520,6 +539,17 @@ exports.purgeExcursionOrder = async (req, res) => {
             });
         }
 
+        // 2. PROTECCIÓN FISCAL: Si tiene NCF, no permitimos borrarla de la DB
+        // Esto evita que te quedes con NCFs "fantasma" en tu Pool.
+        if (order.fiscalData && order.fiscalData.ncf) {
+            return res.status(400).json({
+                ok: false,
+                message: `This order has an assigned NCF (${order.fiscalData.ncf}) and cannot be purged for fiscal integrity. Keep it in 'deleted' status.`,
+                type: "FISCAL_PROTECTION_ERROR"
+            });
+        }
+
+        // 3. Si no tiene NCF (órdenes viejas o fallidas), procedemos al borrado físico
         await ExcursionOrder.findByIdAndDelete(id);
 
         return res.status(200).json({
@@ -529,7 +559,6 @@ exports.purgeExcursionOrder = async (req, res) => {
         });
 
     } catch (error) {
-
         res.status(500).json({
             ok: false,
             message: "Error purging order",

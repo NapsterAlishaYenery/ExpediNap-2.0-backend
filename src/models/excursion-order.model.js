@@ -1,5 +1,6 @@
 const { Schema, model } = require('mongoose');
 const ClientSchema = require('./schema/Client.schema');
+const FiscalData = require('./schema/fiscal-data.schema');
 
 const ExcursionOrderSchema = new Schema({
     orderNumber: {
@@ -96,9 +97,14 @@ const ExcursionOrderSchema = new Schema({
         maxlength: [1000, 'Notes cannot exceed 1000 characters'],
         default: ""
     },
+    // En tu esquema ExcursionOrder agrega:
+    fiscalData: {
+        type: FiscalData,
+        required: false
+    },
     paypalOrderId: {
         type: String,
-        index: true 
+        index: true
     }
 }, {
     versionKey: false,
