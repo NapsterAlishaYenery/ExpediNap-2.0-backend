@@ -3,6 +3,10 @@ const jwt = require("jsonwebtoken");
 
 const Users = require('../models/users.model');
 
+const PasswordResetCode = require('../models/password-reset-code.model');
+const { buildPasswordResetTemplateCode } = require('../templates/emailTemplates');
+const { enviarEmail } = require('../services/mail/emailService');
+
 exports.register = async (req, res) => {
     const {
         name,
@@ -258,3 +262,102 @@ exports.getAllUsers = async (req, res) => {
         });
     }
 }
+
+//Solicitar codigo de reestablecer Password
+exports.requestPasswordReset = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // 1. Verificar si el usuario existe
+        const user = await Users.findOne({ email });
+
+        if (!user) {
+            // Por seguridad, a veces es mejor decir que se envió el correo 
+            // aunque no exista el usuario, pero en entornos admin es mejor ser directo.
+            return res.status(404).json({
+                ok: false,
+                type: 'NotFound',
+                message: 'No account found with that email address.'
+            });
+        }
+
+        // 2. Generar código de 6 dígitos
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // 3. Guardar en la DB (Si ya existía uno para este email, lo borramos primero para evitar conflictos)
+        await PasswordResetCode.deleteMany({ email });
+        await PasswordResetCode.create({ email, code });
+
+        // 4. Enviar el Email usando tu template profesional
+        const htmlTemplate = buildPasswordResetTemplateCode(code, email);
+        
+        await enviarEmail({
+            to: email,
+            subject: "Password Reset Verification Code - ExpediNap",
+            html: htmlTemplate
+        });
+
+        res.status(200).json({
+            ok: true,
+            message: 'Verification code sent to your email.'
+        });
+
+    } catch (error) {
+
+        console.error("Reset Request Error:", error);
+
+        res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Internal server error while requesting reset.'
+        });
+    }
+};
+//Reestablecer Password con codigo 
+exports.resetPassword = async (req, res) => {
+    const { email, code, newPassword } = req.body;
+
+    try {
+        // 1. Validar que el código exista y sea válido
+        const resetRecord = await PasswordResetCode.findOne({ email, code });
+
+        if (!resetRecord) {
+            return res.status(400).json({
+                ok: false,
+                type: 'InvalidCode',
+                message: 'The code is invalid or has expired.'
+            });
+        }
+
+        // 2. Buscar al usuario
+        const user = await Users.findOne({ email });
+        if (!user) {
+            return res.status(404).json({
+                ok: false,
+                type: 'NotFound',
+                message: 'User no longer exists.'
+            });
+        }
+
+        // 3. Hashear la nueva contraseña
+        const salt = await bcrypt.genSalt(10);
+        const newPassEncrypt = await bcrypt.hash(newPassword, salt);
+
+        // 4. Actualizar usuario y borrar el código usado
+        user.password_hash = newPassEncrypt;
+        await user.save();
+        await PasswordResetCode.deleteOne({ _id: resetRecord._id });
+
+        res.status(200).json({
+            ok: true,
+            message: 'Password updated successfully. You can now login.'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Internal server error during password reset.'
+        });
+    }
+};

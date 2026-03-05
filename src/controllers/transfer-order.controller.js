@@ -426,7 +426,7 @@ exports.getTransferStats = async (req, res) => {
 
         return res.status(200).json({
             ok: true,
-            message: "Statistics retrieved successfully",
+            message: "Transfers Statistics retrieved successfully",
             data: formattedStats
         });
 

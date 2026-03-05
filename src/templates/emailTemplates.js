@@ -507,9 +507,105 @@ function buildContactFormTemplate(contactData, isAdmin = false) {
     </body>
     </html>`;
 }
+
+/**
+ * Template para recuperación de contraseña
+ * @param {string} code - El código de 6 dígitos generado
+ * @param {string} email - Correo del destinatario para personalización
+ */
+function buildPasswordResetTemplateCode(code, email) {
+    const dateStr = formatAppDate(new Date());
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 20px auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+            .header { background: #ffffff; padding: 25px; text-align: center; border-bottom: 3px solid #e11d48; }
+            .status-bar { background: #f8fafc; padding: 10px 25px; border-bottom: 1px solid #eee; font-size: 11px; color: #64748b; text-align: right; text-transform: uppercase; }
+            .content { padding: 40px 30px; text-align: center; }
+            .security-icon { font-size: 40px; margin-bottom: 20px; }
+            .h2 { color: #1e293b; margin-bottom: 10px; font-size: 22px; }
+            .p { color: #64748b; font-size: 15px; margin-bottom: 25px; }
+            .code-container { 
+                background: #f1f5f9; 
+                padding: 20px; 
+                border-radius: 12px; 
+                display: inline-block; 
+                margin: 20px 0; 
+                border: 2px dashed #cbd5e1;
+            }
+            .verification-code { 
+                font-family: 'Courier New', Courier, monospace; 
+                font-size: 36px; 
+                font-weight: bold; 
+                color: #e11d48; 
+                letter-spacing: 8px; 
+                margin: 0;
+            }
+            .warning-box { 
+                background: #fffbeb; 
+                border-left: 4px solid #f59e0b; 
+                padding: 15px; 
+                margin-top: 30px; 
+                text-align: left; 
+                font-size: 13px; 
+                color: #92400e; 
+            }
+            .footer { background: #1e293b; color: #ffffff; padding: 30px; text-align: center; font-size: 12px; }
+            .footer a { color: #94a3b8; text-decoration: underline; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <img src="https://res.cloudinary.com/dfwpolska/image/upload/v1769135560/logo-expedinap-horizontal.png" 
+                alt="ExpediNap" style="max-width: 220px; height: auto;">
+            </div>
+            <div class="status-bar">
+                Security Notification | ${dateStr}
+            </div>
+            <div class="content">
+                <div class="security-icon">🛡️</div>
+                <h2 class="h2">Reset Your Password</h2>
+                <p class="p">Hello, we received a request to access your <strong>ExpediNap Admin</strong> account associated with ${email}.</p>
+                
+                <p class="p" style="margin-bottom: 10px;">Your verification code is:</p>
+                <div class="code-container">
+                    <h1 class="verification-code">${code}</h1>
+                </div>
+                
+                <p class="p" style="font-size: 13px; margin-top: 15px;">
+                    This code will expire in <strong>5 minutes</strong>.
+                </p>
+
+                <div class="warning-box">
+                    <strong>Important Security Tips:</strong><br>
+                    • Never share this code with anyone. ExpediNap staff will never ask for it.<br>
+                    • If you did not request this code, your account is still safe, but we recommend you ignore this email.<br>
+                    • If this persists, please contact our technical support.
+                </div>
+            </div>
+            <div class="footer">
+                <strong style="font-size: 16px;">${COMPANY.name}</strong><br>
+                Punta Cana, Dominican Republic<br>
+                <a href="${COMPANY.website}">www.expedinap.com</a><br><br>
+                <div style="border-top: 1px solid #475569; padding-top: 15px; margin-top: 15px; font-size: 10px; color: #94a3b8;">
+                    This is an automated security message. Please do not reply to this email.
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>`;
+}
+
 module.exports = {
     buildExcursionInvoiceTemplate,
     buildTransferInvoiceTemplate,
     buildYachtInvoiceTemplate,
-    buildContactFormTemplate
+    buildContactFormTemplate,
+    buildPasswordResetTemplateCode
 };

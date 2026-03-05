@@ -8,6 +8,7 @@ const path = require('path');
 
 // Importar middleware de limitacion global
 const globalLimiter = require('./middleware/globalLimiter.middleware');
+const setupAutoPing = require('./utils/auto-ping.util');
 
 // Importar la conexion
 const conectarMongoDBAltas = require('./config/db');
@@ -68,6 +69,13 @@ app.use(express.json());
 // Conectar a Mongo
 conectarMongoDBAltas();
 
+
+// Ruta simple para mantener el servidor despierto
+app.get('/keep-alive', (req, res) => {
+  res.status(200).send('Servidor activo');
+});
+
+
 // Usara las rutas
 app.use('/api/excursions', excursionRoutes);
 app.use('/api/users', userRoutes);
@@ -105,6 +113,9 @@ app.use('/uploads', (req, res, next) => {
 
 // configurar el puesto del servidor
 const port = process.env.PORT || 4000;
+
+// Iniciar el sistema de auto-ping
+setupAutoPing();
 
 // Iniciar el server
 app.listen(port, ()=>{

@@ -14,10 +14,16 @@ router.get('/all', authMiddleware, isAdminMiddleware, usersController.getAllUser
 router.get('/profile', authMiddleware, usersController.getUserProfile);
 
 //RUTAS POST
-router.post('/register', writeLimiter, validateUsers.register, usersController.register);
+router.post('/register', authMiddleware, isAdminMiddleware, writeLimiter, validateUsers.register, usersController.register);
 router.post('/login', writeLimiter, validateUsers.login, usersController.login);
 
 //RUTA PATCH
 router.patch('/update', authMiddleware, writeLimiter, validateUsers.update,  usersController.update);
+
+// RUTA PARA SOLICITAR EL CÓDIGO (Olvidé mi contraseña)
+router.post('/forgot-password', writeLimiter, usersController.requestPasswordReset);
+
+// RUTA PARA CAMBIAR LA CONTRASEÑA (Usando el código recibido)
+router.post('/reset-password', writeLimiter, usersController.resetPassword);
 
 module.exports = router

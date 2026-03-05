@@ -1,6 +1,5 @@
 const nodemailer = require("nodemailer");
 
-
 /**
  * Configuración del transporte de correo.
  * Se recomienda usar SMTP de Hostinger (puerto 465) para producción.
