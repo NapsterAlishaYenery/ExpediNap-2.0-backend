@@ -160,7 +160,7 @@ exports.getAllTransferOrders = async (req, res) => {
         ]);
 
 
-        if (!orders || orders.length === 0) {
+        if (!orders) {
             return res.status(404).json({
                 ok: false,
                 message: "No transfer orders found",

@@ -112,10 +112,10 @@ exports.getAllNcfs = async (req, res) => {
             NCF.countDocuments(query)
         ]);
 
-        if (!ncfs || ncfs.length === 0) {
+        if (!ncfs) {
             return res.status(404).json({
                 ok: false,
-                message: "No se encontraron registros de NCF.",
+                message: "No NCF records were found",
                 type: "NOT_FOUND"
             });
         }

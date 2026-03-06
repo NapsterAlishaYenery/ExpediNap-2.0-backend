@@ -19,7 +19,7 @@ exports.createBlog = async (req, res) => {
     } = req.body;
 
     try {
-        
+
         const newBlog = await Blogs.create({
             title,
             category,
@@ -206,17 +206,18 @@ exports.getBlogBySlug = async (req, res) => {
 
     } catch (error) {
 
-        res.status(500).json({ 
-            ok: false, 
-            type:'ServerError',
-            message: 'Server error' });
+        res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Server error'
+        });
     }
 }
 
 exports.getAllBlogs = async (req, res) => {
     try {
         // 1. EXTRAER LAS VARIABLES DE req.query
-        const {title, category, type, author } = req.query;
+        const { title, category, type, author } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
 
@@ -242,11 +243,19 @@ exports.getAllBlogs = async (req, res) => {
 
         const [allBlogs, totalItems] = await Promise.all([
             Blogs.find(query)
-                .sort({ createdAt: -1 }) 
+                .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit),
             Blogs.countDocuments(query)
         ]);
+
+        if (!allBlogs) {
+            return res.status(404).json({
+                ok: false,
+                message: "No Blogs found",
+                type: "NOT_FOUND"
+            });
+        }
 
         const totalPages = Math.ceil(totalItems / limit);
         const hasNextPage = page < totalPages;
@@ -267,7 +276,7 @@ exports.getAllBlogs = async (req, res) => {
         });
 
     } catch (error) {
-        
+
         res.status(500).json({
             ok: false,
             type: 'ServerError',

@@ -29,7 +29,7 @@ exports.createExcursion = async (req, res) => {
             description,
             regularPriceUsd,
             offerPriceUsd,
-            childPriceUsd, 
+            childPriceUsd,
             location,
             categories,
             duration,
@@ -151,7 +151,7 @@ exports.deleteExcursion = async (req, res) => {
             ok: true,
             data: deleteExcursion,
             message: 'Excursion deleted successfully'
-            
+
         });
 
     } catch (error) {
@@ -210,6 +210,14 @@ exports.getAllExcursions = async (req, res) => {
             // Tarea B: Contar cuántos documentos hay en total en la colección (sin filtros de página)
             Excursions.countDocuments(query)
         ]);
+
+        if (!allExcursions) {
+            return res.status(404).json({
+                ok: false,
+                message: "No Excursion were found.",
+                type: "NOT_FOUND"
+            });
+        }
 
         /**
          * 3. LÓGICA DE METADATOS (Cálculos para el Frontend)
@@ -287,7 +295,7 @@ exports.getExcursionsSimpleList = async (req, res) => {
     try {
         const list = await Excursions.find()
             .select('_id name')
-            .sort({ name: 1 }); 
+            .sort({ name: 1 });
 
         return res.status(200).json({
             ok: true,

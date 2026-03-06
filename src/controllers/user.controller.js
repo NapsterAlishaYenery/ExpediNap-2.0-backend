@@ -78,7 +78,7 @@ exports.register = async (req, res) => {
 }
 
 exports.login = async (req, res) => {
-    
+
     const { username, password } = req.body;
 
     try {
@@ -102,7 +102,7 @@ exports.login = async (req, res) => {
             });
         }
 
-        const token = jwt.sign({ id: usuarioLogin._id, username: usuarioLogin.username, role: usuarioLogin.role}, process.env.JWT_SECRET, { expiresIn: "1h" });
+        const token = jwt.sign({ id: usuarioLogin._id, username: usuarioLogin.username, role: usuarioLogin.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         const userResponse = usuarioLogin.toObject();
         delete userResponse.password_hash;
@@ -169,14 +169,14 @@ exports.update = async (req, res) => {
 
 }
 
-exports.getUserProfile = async (req, res)=>{
-    const id = req.user.id 
+exports.getUserProfile = async (req, res) => {
+    const id = req.user.id
 
-    try{
+    try {
 
         const userProfile = await Users.findById(id).select('-password_hash');
 
-        if(!userProfile){
+        if (!userProfile) {
             return res.status(404).json({
                 ok: false,
                 type: 'NotFound',
@@ -190,7 +190,7 @@ exports.getUserProfile = async (req, res)=>{
             message: 'Profile retrieved successfully'
         })
 
-    }catch(error){
+    } catch (error) {
 
         res.status(500).json({
             ok: false,
@@ -237,6 +237,14 @@ exports.getAllUsers = async (req, res) => {
                 .limit(limit),
             Users.countDocuments(query)
         ]);
+
+        if (!users) {
+            return res.status(404).json({
+                ok: false,
+                message: "No users found.",
+                type: "NOT_FOUND"
+            });
+        }
 
         const totalPages = Math.ceil(totalItems / limit);
 
@@ -290,7 +298,7 @@ exports.requestPasswordReset = async (req, res) => {
 
         // 4. Enviar el Email usando tu template profesional
         const htmlTemplate = buildPasswordResetTemplateCode(code, email);
-        
+
         await enviarEmail({
             to: email,
             subject: "Password Reset Verification Code - ExpediNap",

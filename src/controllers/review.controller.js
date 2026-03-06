@@ -230,6 +230,14 @@ exports.getAllReviewsAdmin = async (req, res) => {
             Reviews.countDocuments(query)
         ]);
 
+        if (!reviews) {
+            return res.status(404).json({
+                ok: false,
+                message: "No reviews found",
+                type: "NOT_FOUND"
+            });
+        }
+
         const totalPages = Math.ceil(totalItems / limit);
 
 

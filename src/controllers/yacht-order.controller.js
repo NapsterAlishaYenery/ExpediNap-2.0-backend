@@ -183,7 +183,7 @@ exports.getAllYachtOrders = async (req, res) => {
             YachtOrder.countDocuments(query)
         ]);
 
-        if (!orders || orders.length === 0) {
+        if (!orders) {
             return res.status(404).json({
                 ok: false,
                 message: "No yacht orders found.",

@@ -185,6 +185,14 @@ exports.getAllYatch = async (req, res) => {
             Yachts.countDocuments(query)
         ]);
 
+        if (!allYatchs) {
+            return res.status(404).json({
+                ok: false,
+                message: "No yacht found.",
+                type: "NOT_FOUND"
+            });
+        }
+
         const totalPages = Math.ceil(totalItems / limit);
         const hasNextPage = page < totalPages;
         const hasPrevPage = page > 1;

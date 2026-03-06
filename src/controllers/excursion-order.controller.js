@@ -367,6 +367,15 @@ exports.getAllExcursionOrders = async (req, res) => {
             ExcursionOrder.countDocuments(query)
         ]);
 
+        
+        if (!orders) {
+            return res.status(404).json({
+                ok: false,
+                message: "No Excursion Orders found",
+                type: "NOT_FOUND"
+            });
+        }
+
         const totalPages = Math.ceil(totalItems / limit);
 
         return res.status(200).json({
