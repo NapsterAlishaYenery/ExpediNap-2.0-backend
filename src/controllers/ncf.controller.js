@@ -13,31 +13,31 @@ exports.saveSingleNcf = async (req, res) => {
             tipoNcf,
             ncf,
             fechaVencimiento: new Date(fechaVencimiento),
-            estado: 'disponible' // 'isUsed' no existe en tu modelo, usamos 'estado'
+            estado: 'available' // 'isUsed' no existe en tu modelo, usamos 'estado'
         });
 
         await nuevoNcf.save();
 
         res.status(201).json({
             ok: true,
-            message: "NCF guardado individualmente",
+            message: "NCF saved individually",
             data: nuevoNcf
         });
     } catch (error) {
-        console.error("Error en saveSingleNcf:", error); // Importante para debug
+        console.error("Error in saveSingleNcf:", error); // Importante para debug
 
         // Si es error de duplicado en MongoDB
         if (error.code === 11000) {
             return res.status(400).json({
                 ok: false,
-                message: `El NCF ${JSON.stringify(error.keyValue)} ya existe.`,
+                message: `The NCF ${JSON.stringify(error.keyValue)} already exists.`,
                 type: "DUPLICATE_ERROR"
             });
         }
 
         res.status(500).json({
             ok: false,
-            message: "Error al guardar el NCF",
+            message: "Error saving NCF",
             type: "SERVER_ERROR",
             error: error.message // Esto te ayudará a ver por qué falló en Postman
         });
@@ -55,24 +55,24 @@ exports.saveBulkNcfs = async (req, res) => {
             tipoNcf: item.tipoNcf,
             ncf: item.ncf,
             fechaVencimiento: new Date(item.fechaVencimiento),
-            estado: 'disponible'
+            estado: 'available'
         }));
 
         const docs = await NCF.insertMany(ncfsParaGuardar);
 
         res.status(201).json({
             ok: true,
-            message: `${docs.length} números NCF cargados exitosamente`,
+            message: `${docs.length} NCF numbers successfully loaded`,
             data: { count: docs.length }
         });
     } catch (error) {
 
-        console.error("Error en saveBulkNcfs:", error);
+        console.error("Error in saveBulkNcfs:", error);
 
         if (error.code === 11000) {
             return res.status(400).json({
                 ok: false,
-                message: "Uno o varios números NCF ya existen en el sistema.",
+                message: "One or more NCF numbers already exist in the system.",
                 type: "DUPLICATE_ERROR",
                 // Opcional: mostrar cuál falló
                 error: error.writeErrors ? error.writeErrors[0].errmsg : error.message
@@ -80,7 +80,7 @@ exports.saveBulkNcfs = async (req, res) => {
         }
         res.status(500).json({
             ok: false,
-            message: "Error en la carga masiva de NCFs",
+            message: "Error in bulk upload of NCFs",
             type: "SERVER_ERROR",
             error: error.message
         });
@@ -125,7 +125,7 @@ exports.getAllNcfs = async (req, res) => {
         return res.status(200).json({
             ok: true,
             data: ncfs,
-            message: "NCFs recuperados exitosamente",
+            message: "NCFs successfully recovered",
             pagination: {
                 page,
                 limit,
@@ -139,7 +139,7 @@ exports.getAllNcfs = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             ok: false,
-            message: "Error al obtener los NCFs desde el servidor",
+            message: "Error retrieving NCFs from the server",
             type: "SERVER_ERROR"
         });
     }
@@ -154,14 +154,14 @@ exports.getNcfStats = async (req, res) => {
             {
                 $group: {
                     _id: "$tipoNcf",
-                    disponibles: {
-                        $sum: { $cond: [{ $eq: ["$estado", "disponible"] }, 1, 0] }
+                    available: {
+                        $sum: { $cond: [{ $eq: ["$estado", "available"] }, 1, 0] }
                     },
-                    usados: {
-                        $sum: { $cond: [{ $eq: ["$estado", "usado"] }, 1, 0] }
+                    used: {
+                        $sum: { $cond: [{ $eq: ["$estado", "used"] }, 1, 0] }
                     },
-                    vencidos: {
-                        $sum: { $cond: [{ $eq: ["$estado", "vencido"] }, 1, 0] }
+                    expired: {
+                        $sum: { $cond: [{ $eq: ["$estado", "expired"] }, 1, 0] }
                     }
                 }
             }
@@ -170,12 +170,13 @@ exports.getNcfStats = async (req, res) => {
         return res.status(200).json({
             ok: true,
             data: stats,
-            message: "Estadísticas de NCF generadas"
+            message: "NCF statistics generated"
         });
     } catch (error) {
+        
         return res.status(500).json({
             ok: false,
-            message: "Error al generar estadísticas",
+            message: "Error generating statistics",
             type: "SERVER_ERROR"
         });
     }
@@ -193,15 +194,15 @@ exports.deleteNcf = async (req, res) => {
         if (!ncfEncontrado) {
             return res.status(404).json({
                 ok: false,
-                message: "NCF no encontrado",
+                message: "NCF not found",
                 type: "NOT_FOUND"
             });
         }
 
-        if (ncfEncontrado.estado === 'usado') {
+        if (ncfEncontrado.estado === 'used') {
             return res.status(400).json({
                 ok: false,
-                message: "No se puede eliminar un NCF que ya fue utilizado en una factura",
+                message: "You cannot delete an NCF that has already been used on an invoice",
                 type: "BAD_REQUEST"
             });
         }
@@ -210,7 +211,7 @@ exports.deleteNcf = async (req, res) => {
 
         return res.status(200).json({
             ok: true,
-            message: "NCF eliminado correctamente",
+            message: "NCF removed successfully",
             data: deleteNcf
         });
 

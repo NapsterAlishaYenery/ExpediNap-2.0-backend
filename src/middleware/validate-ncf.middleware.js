@@ -21,7 +21,7 @@ const validateNcf = {
                 return res.status(400).json({
                     ok: false,
                     type: 'ValidationError',
-                    message: `El campo '${campo}' es obligatorio.`
+                    message: `The field '${campo}' is required.`
                 });
             }
         }
@@ -31,7 +31,7 @@ const validateNcf = {
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'Formato de NCF inválido. Ej: B0200000001'
+                message: 'Invalid NCF format. Ex: B0200000001'
             });
         }
 
@@ -55,7 +55,7 @@ const validateNcf = {
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'Se requiere un array de NCFs en el campo "ncfs".'
+                message: 'An array of NCFs is required in the "ncfs field."'
             });
         }
 
@@ -67,7 +67,7 @@ const validateNcf = {
                 return res.status(400).json({
                     ok: false,
                     type: 'ValidationError',
-                    message: `Error en el índice ${i}: Faltan campos obligatorios (tipoNcf, ncf, fechaVencimiento).`
+                    message: `Index error ${i}: Required fields are missing (NcfType, ncf, ExpirationDate).`
                 });
             }
 
@@ -75,7 +75,7 @@ const validateNcf = {
                 return res.status(400).json({
                     ok: false,
                     type: 'ValidationError',
-                    message: `Error en el índice ${i}: El NCF ${item.ncf} no tiene un formato válido.`
+                    message: `Index error ${i}: The NCF ${item.ncf} It does not have a valid format.`
                 });
             }
         }
@@ -92,7 +92,7 @@ const validateNcf = {
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: "El ID proporcionado no es un ObjectId válido de MongoDB."
+                message: "The provided ID is not a valid MongoDB ObjectId."
             });
         }
         next();

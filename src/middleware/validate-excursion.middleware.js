@@ -73,7 +73,7 @@ const validateExcursion = {
         const updates = req.body;
         const camposRecibidos = Object.keys(updates);
 
-        const camposProhibidos = ["_id", "createdAt", "updatedAt"];
+        const camposProhibidos = ["_id", "slug", "createdAt", "updatedAt"];
 
         if (camposRecibidos.length === 0) {
             return res.status(400).json({

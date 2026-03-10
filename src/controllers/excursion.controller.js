@@ -291,6 +291,34 @@ exports.getExcursionsByID = async (req, res) => {
     }
 }
 
+exports.getExcursionBySlug = async (req, res) => {
+    const { slug } = req.params;
+    try {
+        const excursion = await Excursions.findOne({ slug });
+
+        if (!excursion) {
+            return res.status(404).json({
+                ok: false,
+                type: 'NotFoundError',
+                message: 'The requested excursion does not exist.'
+            });
+        }
+
+        return res.status(200).json({
+            ok: true,
+            data: excursion,
+            message: 'Excursion retrieved successfully by slug.'
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Error retrieving excursion by slug.',
+        });
+    }
+}
+
 exports.getExcursionsSimpleList = async (req, res) => {
     try {
         const list = await Excursions.find()

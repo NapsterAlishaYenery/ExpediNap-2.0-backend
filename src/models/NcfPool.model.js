@@ -3,7 +3,7 @@ const { Schema, model } = require('mongoose');
 const NcfPoolSchema = new Schema({
    ncf: {
     type: String,
-    required: [true, 'El número NCF es obligatorio'],
+    required: [true, 'The NCF number is mandatory'],
     unique: true,
     trim: true,
     uppercase: true,
@@ -13,7 +13,7 @@ const NcfPoolSchema = new Schema({
       validator: function(v) {
         return /^B(01|02|11|16)\d{8}$/.test(v);
       },
-      message: props => `${props.value} no es un formato de NCF válido (Ej: B0200000001)`
+      message: props => `${props.value} This is not a valid NCF format (e.g., B0200000001)`
     }
   },
     tipoNcf: {
@@ -24,13 +24,13 @@ const NcfPoolSchema = new Schema({
     },
     estado: {
         type: String,
-        enum: ['disponible', 'usado', 'vencido', 'reservado'],
-        default: 'disponible',
+        enum: ['available', 'used', 'expired', 'reserved'],
+        default: 'available',
         index: true
     },
     fechaVencimiento: {
         type: Date,
-        required: [true, 'La fecha de vencimiento es obligatoria']
+        required: [true, 'The expiration date is mandatory']
     },
     // Relación para saber quién usó este número
     orderId: {

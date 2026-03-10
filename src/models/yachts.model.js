@@ -5,6 +5,7 @@ const PricesSchema = require('./schema/prices.schema');
 const stringArrayValidator = require('../utils/string-array.validator');
 const yachtExtrasIncludesSchemas = require('./schema/yacht-extras-includes.schemas');
 const YachtRiverSunsetSchema = require('./schema/yacht-river-sunset.schema');
+const slugify = require('slugify');
 
 const YachtsSchema = new Schema({
     name: {
@@ -12,6 +13,13 @@ const YachtsSchema = new Schema({
         required: true,
         trim: true,
         unique: true
+    },
+    slug: {
+        type: String,
+        required: [true, 'Slug is required for SEO URLs'],
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     maxPax: {
         type: Number,
@@ -68,6 +76,19 @@ const YachtsSchema = new Schema({
 
     versionKey: false,
     timestamps: true
+});
+
+YachtsSchema.pre('validate', function (next) {
+    if (this.isNew && this.name && !this.slug) {
+        const baseSlug = slugify(this.name, { lower: true, strict: true });
+        
+        // Usamos la fecha actual para el sufijo
+        const date = new Date();
+        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        
+        this.slug = `${baseSlug}-${dateString}`;
+    }
+    next();
 });
 
 module.exports = model("yacht", YachtsSchema);

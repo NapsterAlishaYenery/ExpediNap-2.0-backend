@@ -251,6 +251,33 @@ exports.getYatchByID = async (req, res) => {
     }
 }
 
+exports.getYachtBySlug = async (req, res) => {
+    const { slug } = req.params;
+    try {
+        const yacht = await Yachts.findOne({ slug });
+
+        if (!yacht) {
+            return res.status(404).json({
+                ok: false,
+                type: 'NotFoundError',
+                message: 'The requested yacht does not exist.'
+            });
+        }
+
+        return res.status(200).json({
+            ok: true,
+            data: yacht,
+            message: 'Yacht retrieved successfully by slug.'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Error retrieving yacht by slug.',
+        });
+    }
+}
+
 exports.getYachtsSimpleList = async (req, res) => {
     try {
         const list = await Yachts.find()

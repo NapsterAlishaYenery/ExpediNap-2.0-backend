@@ -12,7 +12,7 @@ const yachtController = require('../controllers/yacht.controller');
 router.get('/all', yachtController.getAllYatch);
 router.get('/all-for-select', yachtController.getYachtsSimpleList);
 router.get('/detail/:id', validateYacht.id, yachtController.getYatchByID);
-
+router.get('/slug/:slug', yachtController.getYachtBySlug);
 
 //RUTAS UPDATE
 router.patch('/update/:id', authMiddleware, isAdminMiddleware, writeLimiter, validateYacht.id, validateYacht.upDate, yachtController.upDateYatch);

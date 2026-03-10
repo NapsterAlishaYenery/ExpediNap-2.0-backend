@@ -2,7 +2,7 @@ const { Schema, model } = require('mongoose');
 const priceValidator = require('../utils/price.validator');
 const ImagesSchema = require('./schema/images.schema');
 const stringArrayValidator = require('../utils/string-array.validator');
-
+const slugify = require('slugify'); 
 
 const ExcursionsSchema = new Schema({
     name: {
@@ -10,6 +10,13 @@ const ExcursionsSchema = new Schema({
         required: [true, 'Name of excursion is required'],
         trim: true,
         unique: true
+    },
+    slug: {
+        type: String,
+        required: [true, 'Slug is required for SEO URLs'],
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     description: {
         type: String,
@@ -33,7 +40,7 @@ const ExcursionsSchema = new Schema({
     childPriceUsd: {
         type: Number,
         required: [true, 'Child Price is required'],
-        min: [0, 'Price cannot be negative'], 
+        min: [0, 'Price cannot be negative'],
         validate: priceValidator
     },
     location: {
@@ -100,9 +107,9 @@ const ExcursionsSchema = new Schema({
         type: ImagesSchema,
         required: [true, 'Main Image of excursion is required']
     },
-}, { 
+}, {
     versionKey: false,
-    timestamps: true 
+    timestamps: true
 }
 );
 
@@ -114,6 +121,19 @@ ExcursionsSchema.pre('validate', function () {
             'Offer price must be lower than regular price'
         );
     }
+
+    // 2. Generar Slug automáticamente si no existe (basado en el nombre)
+    if (this.isNew && this.name && !this.slug) {
+        let baseSlug = slugify(this.name, { lower: true, strict: true });
+
+        // Añadimos fecha para evitar colisiones si repites nombres de excursiones
+        const date = new Date();
+        const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+        this.slug = `${baseSlug}-${dateString}`;
+    }
 });
+
+
 
 module.exports = model("excursions", ExcursionsSchema);
