@@ -54,7 +54,7 @@ exports.createManualExcursionOrder = async (req, res) => {
         const childPriceSnap = excursionData.childPriceUsd || 0;
         const subtotal = (adults * adultPriceSnap) + ((children || 0) * childPriceSnap);
         
-        const taxRate = 0.18;
+        const taxRate = 0;
         const taxAmount = Number((subtotal * taxRate).toFixed(2));
         const finalTotalPrice = Number((subtotal + taxAmount).toFixed(2));
 

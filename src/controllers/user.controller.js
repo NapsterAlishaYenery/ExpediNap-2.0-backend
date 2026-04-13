@@ -82,7 +82,13 @@ exports.login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const usuarioLogin = await Users.findOne({ username }).select('+password_hash');
+
+        const usuarioLogin = await Users.findOne({
+            $or: [
+                { username: username.toLowerCase() },
+                { email: username.toLowerCase() }
+            ]
+        }).select('+password_hash');
 
         if (!usuarioLogin) {
             return res.status(401).json({
@@ -362,6 +368,7 @@ exports.resetPassword = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("ERROR EN RESET:", error);
         res.status(500).json({
             ok: false,
             type: 'ServerError',

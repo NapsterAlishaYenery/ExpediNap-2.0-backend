@@ -12,11 +12,11 @@ exports.getAndUseNextNcf = async (tipoNcf, orderId) => {
         // Lo marcamos como 'usado' de forma atómica
         const ncfAsignado = await NcfPool.findOneAndUpdate(
             { 
-                estado: 'disponible', 
+                estado: 'available', 
                 tipoNcf: tipoNcf 
             },
             { 
-                estado: 'usado',
+                estado: 'used',
                 orderId: orderId,
                 usadoEn: new Date()
             },
