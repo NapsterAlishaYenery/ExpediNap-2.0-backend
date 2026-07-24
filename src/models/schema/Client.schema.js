@@ -3,7 +3,7 @@ const { Schema} = require('mongoose');
 
 const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 
-const phoneRegex = /^[0-9]{8,15}$/;
+const phoneRegex = /^[\+\d\s\-\(\)]{7,20}$/;
 
 const ClientSchema = new Schema({
     fullName: {
@@ -24,7 +24,7 @@ const ClientSchema = new Schema({
         type: String,
         required: [true, 'Phone is required'],
         trim: true,
-        match: [phoneRegex, 'Please provide a valid phone number (digits only)'],
+        match: [phoneRegex, 'Please provide a valid phone number (7-20 digits)'],
         maxlength: [20, 'Phone number cannot exceed 20 characters']
     }
 }, { _id: false });

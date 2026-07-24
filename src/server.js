@@ -112,7 +112,7 @@ app.use('/uploads', (req, res, next) => {
 );
 
 // configurar el puesto del servidor
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 4001;
 
 // Iniciar el sistema de auto-ping
 setupAutoPing();

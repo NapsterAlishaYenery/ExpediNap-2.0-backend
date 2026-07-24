@@ -13,7 +13,7 @@ exports.getGoogleReviews = async (req, res) => {
         // 2. Definimos las constantes de la petición
         // La URL utiliza el Place ID de ExpediNap
         const URL = `https://places.googleapis.com/v1/places/${placeId}`;
-        
+
         // El FieldMask le dice a Google exactamente qué campos queremos (ahorra ancho de banda y costos)
         const FIELD_MASK = 'rating,userRatingCount,reviews,displayName';
 
