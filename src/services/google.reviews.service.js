@@ -20,7 +20,7 @@ const getGoogleReviews = async () => {
         const transformedData = {
             rating: response.data.rating,
             totalReviews: response.data.userRatingCount,
-            businessName: response.data.displayName?.text || 'Hadassa05',
+            businessName: response.data.displayName?.text || 'Expedinap',
             reviews: response.data.reviews?.map(rev => ({
                 author: rev.authorAttribution?.displayName || 'Anónimo',
                 photo: rev.authorAttribution?.photoUri || null,
@@ -39,14 +39,14 @@ const getGoogleReviews = async () => {
         if (error.response) {
             throw {
                 status: error.response.status,
-                message: error.response.data.error?.message || 'Error en la API externa de Google',
+                message: error.response.data.error?.message || 'Error in the external Google API',
                 type: 'EXTERNAL_API_ERROR'
             };
         }
 
         throw {
             status: 500,
-            message: 'Error al obtener reseñas de Google',
+            message: 'Error retrieving Google reviews',
             type: 'SERVICE_ERROR'
         };
     }
