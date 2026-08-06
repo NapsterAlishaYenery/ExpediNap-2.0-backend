@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getGoogleReviews } = require('../services/google.reviews.service');
 
 /**
  * Obtiene las reseñas reales de Google Business Profile (Places API New)
