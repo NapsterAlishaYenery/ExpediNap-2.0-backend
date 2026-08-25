@@ -78,11 +78,10 @@ exports.register = async (req, res) => {
 }
 
 exports.login = async (req, res) => {
-
     const { username, password } = req.body;
 
     try {
-
+        // 1. Buscar usuario por username o email
         const usuarioLogin = await Users.findOne({
             $or: [
                 { username: username.toLowerCase() },
@@ -98,6 +97,7 @@ exports.login = async (req, res) => {
             });
         }
 
+        // 2. Validar contraseña
         const validatePassword = await bcrypt.compare(password, usuarioLogin.password_hash);
 
         if (!validatePassword) {
@@ -108,25 +108,47 @@ exports.login = async (req, res) => {
             });
         }
 
-        const token = jwt.sign({ id: usuarioLogin._id, username: usuarioLogin.username, role: usuarioLogin.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        // 3. Generar JWT
+        const token = jwt.sign(
+            {
+                id: usuarioLogin._id,
+                username: usuarioLogin.username,
+                role: usuarioLogin.role
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" } // Token válido por 7 días
+        );
 
+        // 4. Configurar cookie HttpOnly
+        res.cookie('token', token, {
+            httpOnly: true,        // ⚠️ No accesible desde JavaScript (seguro)
+            secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+            sameSite: 'lax',       // Protege contra CSRF
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
+        });
+
+        // 5. Respuesta sin token en el body (más seguro)
         const userResponse = usuarioLogin.toObject();
         delete userResponse.password_hash;
 
         res.status(200).json({
             ok: true,
-            data: { token, user: userResponse },
+            data: {
+                user: userResponse,
+                // ⚠️ NO incluyas el token en el body
+            },
             message: 'Login successful'
         });
 
     } catch (error) {
+        console.error('--- LOGIN ERROR ---', error);
         res.status(500).json({
             ok: false,
             type: 'ServerError',
             message: 'Internal server error'
         });
     }
-}
+};
 
 exports.update = async (req, res) => {
 
@@ -373,6 +395,36 @@ exports.resetPassword = async (req, res) => {
             ok: false,
             type: 'ServerError',
             message: 'Internal server error during password reset.'
+        });
+    }
+};
+
+
+/**
+ * Logout - Elimina la cookie del token
+ * POST /api/auth/logout
+ */
+exports.logout = async (req, res) => {
+    try {
+        // ✅ Eliminar la cookie 'token'
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/' // Asegura que se elimine en todo el dominio
+        });
+
+        res.status(200).json({
+            ok: true,
+            message: 'Logout successful'
+        });
+
+    } catch (error) {
+        console.error('--- LOGOUT ERROR ---', error);
+        res.status(500).json({
+            ok: false,
+            type: 'ServerError',
+            message: 'Internal server error during logout'
         });
     }
 };

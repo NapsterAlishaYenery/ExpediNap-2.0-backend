@@ -1,6 +1,6 @@
 const { Schema, model } = require('mongoose');
 const integerValidator = require('../utils/integer.validator');
-const ImagesSchema = require('./schema/images.schema');
+const {ImagesSchema} = require('./schema/images.schema');
 const PricesSchema = require('./schema/prices.schema');
 const stringArrayValidator = require('../utils/string-array.validator');
 const yachtExtrasIncludesSchemas = require('./schema/yacht-extras-includes.schemas');
@@ -19,6 +19,12 @@ const YachtsSchema = new Schema({
         required: [true, 'Slug is required for SEO URLs'],
         unique: true,
         lowercase: true,
+        trim: true
+    },
+    cloudinaryFolder: {
+        type: String,
+        required: [true, 'Cloudinary folder is required'],
+        unique: true,
         trim: true
     },
     maxPax: {
@@ -78,17 +84,23 @@ const YachtsSchema = new Schema({
     timestamps: true
 });
 
-YachtsSchema.pre('validate', function (next) {
+YachtsSchema.pre('validate', function () {
     if (this.isNew && this.name && !this.slug) {
         const baseSlug = slugify(this.name, { lower: true, strict: true });
-        
+
         // Usamos la fecha actual para el sufijo
         const date = new Date();
         const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        
+
         this.slug = `${baseSlug}-${dateString}`;
     }
-    next();
 });
 
+//  Índices para búsquedas rápidas
+YachtsSchema.index({ maxPax: 1 }); // Filtro por capacidad
+YachtsSchema.index({ isPublished: 1, isFeatured: -1 }); // Ordenamiento
+YachtsSchema.index({ name: 'text', description: 'text' }); // Búsqueda de texto
+
+
+// module.exports = model("yacht", YachtsSchema);
 module.exports = model("yacht", YachtsSchema);

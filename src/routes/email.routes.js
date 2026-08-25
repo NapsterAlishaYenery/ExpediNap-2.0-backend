@@ -7,6 +7,8 @@ const writeLimiter = require('../middleware/rateLimiter.middleware');
 const emailSenderController = require('../controllers/email-sender.controller');
 
 //RUTA CREATE
-router.post('/send', [writeLimiter, validateEmailSender.emailSend],emailSenderController.createEmailSenderContact);
+router.post('/send', 
+    [writeLimiter, validateEmailSender.emailSend]
+    ,emailSenderController.createEmailSenderContact);
 
 module.exports = router;

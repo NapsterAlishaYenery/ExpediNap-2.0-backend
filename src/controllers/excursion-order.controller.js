@@ -50,11 +50,13 @@ exports.createManualExcursionOrder = async (req, res) => {
         }
 
         // 3. Cálculos de Precios e Impuestos (Mantenemos tu lógica exacta)
-        const adultPriceSnap = excursionData.offerPriceUsd;
-        const childPriceSnap = excursionData.childPriceUsd || 0;
+        const adultPriceSnap = excursionData.pricing?.adultPrice || 0;
+        const childPriceSnap = excursionData.pricing?.childPrice || 0;
         const subtotal = (adults * adultPriceSnap) + ((children || 0) * childPriceSnap);
-        
-        const taxRate = 0;
+
+        // ✅ Leer la variable de entorno
+        const TAX_RATE = parseFloat(process.env.TAX_RATE) || 0; // 0.18 en RD
+        const taxRate = TAX_RATE; // Usar la variable
         const taxAmount = Number((subtotal * taxRate).toFixed(2));
         const finalTotalPrice = Number((subtotal + taxAmount).toFixed(2));
 
@@ -85,7 +87,7 @@ exports.createManualExcursionOrder = async (req, res) => {
             hotelNumber: hotelNumber || "N/A",
             excursionId: excursionData._id,
             excursionName: excursionData.name,
-            location: excursionData.location,
+            location: excursionData.location?.locationName || excursionData.location || "Punta Cana",
             pax: { adults, children: children || 0 },
             travelDate,
             pricing: {
@@ -110,7 +112,7 @@ exports.createManualExcursionOrder = async (req, res) => {
                 subject: `📩 MANUAL RESERVATION: ${ordenGuardada.orderNumber} - ${fullName}`,
                 html: emailHtmlAdmin
             });
-            
+
             // Opcional: Enviar correo al cliente diciendo "Estamos procesando tu solicitud"
             const emailHtmlClient = buildExcursionInvoiceTemplate(ordenGuardada, false);
             await enviarEmail({
@@ -126,7 +128,7 @@ exports.createManualExcursionOrder = async (req, res) => {
         return res.status(201).json({
             ok: true,
             message: 'Booking request created successfully. Coordination via WhatsApp required.',
-            data: ordenGuardada, 
+            data: ordenGuardada,
         });
 
     } catch (error) {
@@ -234,7 +236,7 @@ exports.createExcursionOrder = async (req, res) => {
         return res.status(201).json({
             ok: true,
             message: 'Excursion booking request received successfully',
-            data: ordenGuardada, 
+            data: ordenGuardada,
         });
 
     } catch (error) {
@@ -257,9 +259,9 @@ exports.createExcursionOrder = async (req, res) => {
 
 exports.captureExcursionPayment = async (req, res) => {
     try {
-        const { orderId } = req.params; 
+        const { orderId } = req.params;
 
-       
+
         const captureData = await paypalService.capturePayPalOrder(orderId);
 
         if (captureData.status === 'COMPLETED') {
@@ -285,7 +287,7 @@ exports.captureExcursionPayment = async (req, res) => {
                     html: emailHtmlClient
                 });
 
-               
+
                 const emailHtmlAdmin = buildExcursionInvoiceTemplate(order, true);
                 await enviarEmail({
                     to: process.env.CONTACT_EMAIL_RECEIVER,
@@ -367,7 +369,7 @@ exports.getAllExcursionOrders = async (req, res) => {
             ExcursionOrder.countDocuments(query)
         ]);
 
-        
+
         if (!orders) {
             return res.status(404).json({
                 ok: false,
@@ -465,7 +467,7 @@ exports.updateExcursionOrder = async (req, res) => {
                 console.error("❌ Error enviando actualización de excursión:", mailErr);
             }
         }
-        
+
         res.status(200).json({
             ok: true,
             data: orderUpdated,

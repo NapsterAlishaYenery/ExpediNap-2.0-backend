@@ -1,100 +1,79 @@
-const { Types } = require("mongoose");
+// src/middleware/validate-ncf.middleware.js
+const Joi = require('joi');
 
-const CAMPOS_PERMITIDOS = [
-    'tipoNcf',
-    'ncf',
-    'fechaVencimiento' // <--- Antes era 'vencimiento'
-];
+// ========================================
+// ESQUEMA DE VALIDACIÓN PARA NCF
+// ========================================
+
+// Validación para un solo NCF
+const singleNcfSchema = Joi.object({
+    tipoNcf: Joi.string().valid('B01', 'B02', 'B11', 'B16').required().messages({
+        'any.required': 'NCF type is required',
+        'any.only': 'NCF type must be B01, B02, B11, or B16'
+    }),
+    ncf: Joi.string().pattern(/^B(01|02|11|16)\d{8}$/).required().messages({
+        'any.required': 'NCF number is required',
+        'string.pattern.base': 'Invalid NCF format. Must follow pattern: B0200000001'
+    }),
+    fechaVencimiento: Joi.date().required().messages({
+        'any.required': 'Expiration date is required',
+        'date.base': 'Invalid date format'
+    })
+});
+
+// Validación para carga masiva (Bulk)
+const bulkNcfSchema = Joi.object({
+    ncfs: Joi.array().items(
+        Joi.object({
+            tipoNcf: Joi.string().valid('B01', 'B02', 'B11', 'B16').required(),
+            ncf: Joi.string().pattern(/^B(01|02|11|16)\d{8}$/).required(),
+            fechaVencimiento: Joi.date().required()
+        })
+    ).min(1).required().messages({
+        'any.required': 'Array of NCFs is required in the "ncfs" field',
+        'array.min': 'At least one NCF is required'
+    })
+});
+
+// ========================================
+// MIDDLEWARES
+// ========================================
 
 const validateNcf = {
 
     /**
-     * Valida la creación de un solo NCF
+     * Validación para CREAR un solo NCF
      */
     createSingle: (req, res, next) => {
-        const data = req.body;
-        const camposObligatorios = ['tipoNcf', 'ncf', 'fechaVencimiento'];
+        const { error } = singleNcfSchema.validate(req.body, { abortEarly: false });
 
-        // 1. Verificar campos obligatorios
-        for (const campo of camposObligatorios) {
-            if (!data[campo]) {
-                return res.status(400).json({
-                    ok: false,
-                    type: 'ValidationError',
-                    message: `The field '${campo}' is required.`
-                });
-            }
-        }
-
-        // 2. Validar formato NCF (Ej: B0200000001 -> 11 caracteres)
-        if (!/^B(01|02|11|16)\d{8}$/.test(data.ncf)) { // o item.ncf en bulk
+        if (error) {
+            const errors = error.details.map(detail => detail.message);
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'Invalid NCF format. Ex: B0200000001'
+                messages: errors
             });
         }
 
-        // 3. Limpiar campos no permitidos
-        const filteredData = {};
-        CAMPOS_PERMITIDOS.forEach(campo => {
-            if (data[campo] !== undefined) filteredData[campo] = data[campo];
-        });
-
-        req.body = filteredData;
         next();
     },
 
     /**
-     * Valida la carga masiva (Bulk)
+     * Validación para CARGA MASIVA de NCFs
      */
     createBulk: (req, res, next) => {
-        const { ncfs } = req.body;
+        const { error } = bulkNcfSchema.validate(req.body, { abortEarly: false });
 
-        if (!ncfs || !Array.isArray(ncfs) || ncfs.length === 0) {
+        if (error) {
+            const errors = error.details.map(detail => detail.message);
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'An array of NCFs is required in the "ncfs field."'
+                messages: errors
             });
         }
 
-        // Validar cada elemento del array
-        for (let i = 0; i < ncfs.length; i++) {
-            const item = ncfs[i];
-
-            if (!item.tipoNcf || !item.ncf || !item.fechaVencimiento) {
-                return res.status(400).json({
-                    ok: false,
-                    type: 'ValidationError',
-                    message: `Index error ${i}: Required fields are missing (NcfType, ncf, ExpirationDate).`
-                });
-            }
-
-            if (!/^B[0-9]{10}$/.test(item.ncf)) {
-                return res.status(400).json({
-                    ok: false,
-                    type: 'ValidationError',
-                    message: `Index error ${i}: The NCF ${item.ncf} It does not have a valid format.`
-                });
-            }
-        }
-
-        next();
-    },
-
-    /**
-     * Valida el ID para eliminación
-     */
-    id: (req, res, next) => {
-        const { id } = req.params;
-        if (!Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                ok: false,
-                type: 'ValidationError',
-                message: "The provided ID is not a valid MongoDB ObjectId."
-            });
-        }
         next();
     }
 };

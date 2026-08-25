@@ -6,6 +6,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const isAdminMiddleware = require('../middleware/isAdmin.middleware');
 const writeLimiter = require('../middleware/rateLimiter.middleware');
 const validateTransferOrder = require('../middleware/validate-order-transfer.middleware');
+const validateID = require('../middleware/validate-id.middleware');
 
 // Controlador
 const transferOrderController = require('../controllers/transfer-order.controller');
@@ -22,15 +23,15 @@ router.get('/all-orders', [authMiddleware, isAdminMiddleware], transferOrderCont
 router.get('/stats', [authMiddleware, isAdminMiddleware], transferOrderController.getTransferStats);
 
 // Obtener el detalle 
-router.get('/detail/:id', [authMiddleware, isAdminMiddleware, validateTransferOrder.id], transferOrderController.getTransferOrderById);
+router.get('/detail/:id', [authMiddleware, isAdminMiddleware, validateID.id], transferOrderController.getTransferOrderById);
 
 // Actualizar 
-router.patch('/update/:id', [authMiddleware, isAdminMiddleware, writeLimiter, validateTransferOrder.id, validateTransferOrder.update], transferOrderController.updateTransferOrder);
+router.patch('/update/:id', [authMiddleware, isAdminMiddleware, writeLimiter, validateID.id, validateTransferOrder.update], transferOrderController.updateTransferOrder);
 
 // Borrado lógico 
-router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateTransferOrder.id], transferOrderController.deleteTransferOrder);
+router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateID.id], transferOrderController.deleteTransferOrder);
 
 // Borrado físico 
-router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateTransferOrder.id], transferOrderController.purgeTransferOrder);
+router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateID.id], transferOrderController.purgeTransferOrder);
 
 module.exports = router;

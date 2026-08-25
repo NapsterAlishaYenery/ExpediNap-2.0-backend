@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const path = require('path');
 
@@ -19,7 +20,6 @@ const yachtRoutes = require('./routes/yacht.route');
 const blogsRoutes = require('./routes/blog.routes');
 //Rutas nuevas
 const weatherRoutes = require('./routes/weather.routes');
-const reviewRoutes = require('./routes/review.routes');
 const orderTransferRoutes = require('./routes/transfer-order.routes');
 const orderYachRoutes = require('./routes/yacht-order.routes');
 const orderExcursionRoutes = require('./routes/excursion-order.routes');
@@ -64,6 +64,7 @@ app.use(cors({
 app.use(helmet());
 app.use(compression());
 app.use(express.json());
+app.use(cookieParser());
 
 // Conectar a Mongo
 conectarMongoDBAltas();
@@ -75,7 +76,6 @@ app.use('/api/yachts', yachtRoutes);
 app.use('/api/blogs',blogsRoutes);
 //RUTAS NUEVAS
 app.use('/api/weather', weatherRoutes);
-app.use('/api/reviews', reviewRoutes);
 app.use('/api/orders-transfer', orderTransferRoutes);
 app.use('/api/orders-yacht', orderYachRoutes);
 app.use('/api/orders-excursion', orderExcursionRoutes);

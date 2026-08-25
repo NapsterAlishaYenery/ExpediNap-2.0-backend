@@ -151,8 +151,6 @@ exports.createYachtOrder = async (req, res) => {
     }
 };
 
-
-
 exports.getAllYachtOrders = async (req, res) => {
     try {
 

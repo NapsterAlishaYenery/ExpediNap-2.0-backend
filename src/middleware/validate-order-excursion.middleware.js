@@ -1,123 +1,104 @@
-const { Types } = require("mongoose");
+// src/middleware/validate-excursion-order.middleware.js
+const Joi = require('joi');
 
-const CAMPOS_PERMITIDOS_UPDATE = [
-    'status',
-    'internalNotes'
-];
+// ========================================
+// ESQUEMA DE VALIDACIÓN PARA ORDEN DE EXCURSIÓN
+// ========================================
 
-const CAMPOS_PERMITIDOS_CREATE = [
-    'excursionId',
-    'fullName',
-    'email',
-    'phone',
-    'adults',
-    'children',
-    'travelDate',
-    'hotelName',
-    'hotelNumber'
-];
+// Validación para CREAR orden
+const createExcursionOrderSchema = Joi.object({
+    excursionId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required().messages({
+        'any.required': 'Excursion ID is required',
+        'string.pattern.base': 'Invalid excursionId format. Must be a valid MongoDB ObjectId.'
+    }),
+    fullName: Joi.string().min(2).max(100).required().messages({
+        'any.required': 'Full name is required',
+        'string.min': 'Full name must be at least 2 characters',
+        'string.max': 'Full name cannot exceed 100 characters'
+    }),
+    email: Joi.string().email().required().messages({
+        'any.required': 'Email is required',
+        'string.email': 'Invalid email format'
+    }),
+    phone: Joi.string().pattern(/^[0-9]{8,15}$/).required().messages({
+        'any.required': 'Phone is required',
+        'string.pattern.base': 'Invalid phone format. Must be 8-15 digits'
+    }),
+    adults: Joi.number().integer().min(1).max(100).required().messages({
+        'any.required': 'At least 1 adult is required',
+        'number.min': 'At least 1 adult is required',
+        'number.max': 'Adults cannot exceed 100',
+        'number.integer': 'Adults must be an integer'
+    }),
+    children: Joi.number().integer().min(0).max(50).default(0).messages({
+        'number.min': 'Children cannot be negative',
+        'number.max': 'Children cannot exceed 50',
+        'number.integer': 'Children must be an integer'
+    }),
+    travelDate: Joi.date().required().messages({
+        'any.required': 'Travel date is required',
+        'date.base': 'Invalid date format'
+    }),
+    hotelName: Joi.string().max(255).optional().allow(''),
+    hotelNumber: Joi.string().max(50).optional().allow('')
+});
+
+// Validación para ACTUALIZAR orden (solo campos permitidos)
+const updateExcursionOrderSchema = Joi.object({
+    status: Joi.string().valid('pending', 'confirmed', 'paid', 'completed', 'cancelled', 'deleted').optional(),
+    internalNotes: Joi.string().max(1000).optional().allow('').messages({
+        'string.max': 'Internal notes cannot exceed 1000 characters'
+    })
+});
+
+// ========================================
+// MIDDLEWARES
+// ========================================
 
 const validateExcursionOrder = {
 
+    /**
+     * Validación para CREAR orden de excursión
+     */
     create: (req, res, next) => {
-        const data = req.body;
+        const { error } = createExcursionOrderSchema.validate(req.body, { abortEarly: false });
 
-        const camposObligatorios = [
-            'excursionId',
-            'fullName',
-            'email',
-            'phone',
-            'adults',
-            'travelDate',
-        ];
-
-        for (const campo of camposObligatorios) {
-            if (!data[campo]) {
-                return res.status(400).json({
-                    ok: false,
-                    type: 'ValidationError',
-                    message: `The field '${campo}' is required.`
-                });
-            }
-        }
-
-        if (data.email && !/\S+@\S+\.\S+/.test(data.email)) {
+        if (error) {
+            const errors = error.details.map(detail => detail.message);
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'Invalid email format.'
+                messages: errors
             });
         }
-
-        if (!Types.ObjectId.isValid(data.excursionId)) {
-            return res.status(400).json({
-                ok: false,
-                type: 'ValidationError',
-                message: 'Invalid excursionId.'
-            });
-        }
-
-        if (typeof data.adults !== 'number' || data.adults < 1) {
-            return res.status(400).json({
-                ok: false,
-                message: 'At least 1 adult is required.'
-            });
-        }
-
-        const filteredData = {};
-        CAMPOS_PERMITIDOS_CREATE.forEach(campo => {
-            if (data[campo] !== undefined) filteredData[campo] = data[campo];
-        });
-
-        req.body = filteredData;
-
 
         next();
     },
 
+    /**
+     * Validación para ACTUALIZAR orden de excursión
+     */
     update: (req, res, next) => {
-        const updates = req.body;
-        const camposUpdate = Object.keys(updates);
+        const { error } = updateExcursionOrderSchema.validate(req.body, { abortEarly: false });
 
-        if (camposUpdate.length === 0) {
+        if (error) {
+            const errors = error.details.map(detail => detail.message);
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'No data provided for update.'
+                messages: errors
             });
         }
 
-        const camposInvalidos = camposUpdate.filter(campo => !CAMPOS_PERMITIDOS_UPDATE.includes(campo));
-
-        if (camposInvalidos.length > 0) {
+        // ✅ Verificar que al menos un campo esté presente
+        if (Object.keys(req.body).length === 0) {
             return res.status(400).json({
                 ok: false,
-                type: 'ValidationError',
-                message: `Invalid fields for update: ${camposInvalidos.join(', ')}`
+                type: 'EmptyRequest',
+                message: 'At least one field is required to update'
             });
         }
 
-
-        if (updates.internalNotes && updates.internalNotes.length > 1000) {
-            return res.status(400).json({
-                ok: false,
-                type: 'ValidationError',
-                message: 'Internal notes are too long (Max 1000 characters).'
-            });
-        }
-
-        next();
-    },
-
-    id: (req, res, next) => {
-        const { id } = req.params;
-        if (!Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                ok: false,
-                type: 'ValidationError',
-                message: "The provided ID is not a valid MongoDB ObjectId."
-            });
-        }
         next();
     }
 };

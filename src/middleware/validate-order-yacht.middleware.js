@@ -1,107 +1,100 @@
-const { Types } = require("mongoose");
+// src/middleware/validate-yacht-order.middleware.js
+const Joi = require('joi');
 
-const CAMPOS_PERMITIDOS_UPDATE = [
-    'status',
-    'isAvailable',
-    'internalNotes'
-];
+// ========================================
+// ESQUEMA DE VALIDACIÓN PARA ORDEN DE YATE
+// ========================================
 
-const CAMPOS_PERMITIDOS_CREATE = [
-    'yachtId',
-    'destination',
-    'duration',
-    'travelDate',
-    'fullName',
-    'email',
-    'phone'
-];
+// Validación para CREAR orden de yate
+const createYachtOrderSchema = Joi.object({
+    yachtId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required().messages({
+        'any.required': 'Yacht ID is required',
+        'string.pattern.base': 'Invalid yachtId format. Must be a valid MongoDB ObjectId.'
+    }),
+    destination: Joi.string().valid('Saona Island', 'Catalina Island', 'River Sunset').required().messages({
+        'any.required': 'Destination is required',
+        'any.only': 'Destination must be Saona Island, Catalina Island, or River Sunset'
+    }),
+    duration: Joi.string().valid('Full Day', 'Half Day', 'Sunset Trip').required().messages({
+        'any.required': 'Duration is required',
+        'any.only': 'Duration must be Full Day, Half Day, or Sunset Trip'
+    }),
+    travelDate: Joi.date().required().messages({
+        'any.required': 'Travel date is required',
+        'date.base': 'Invalid date format'
+    }),
+    fullName: Joi.string().min(2).max(100).required().messages({
+        'any.required': 'Full name is required',
+        'string.min': 'Full name must be at least 2 characters',
+        'string.max': 'Full name cannot exceed 100 characters'
+    }),
+    email: Joi.string().email().required().messages({
+        'any.required': 'Email is required',
+        'string.email': 'Invalid email format'
+    }),
+    phone: Joi.string().pattern(/^[0-9]{8,15}$/).required().messages({
+        'any.required': 'Phone is required',
+        'string.pattern.base': 'Invalid phone format. Must be 8-15 digits'
+    })
+});
+
+// Validación para ACTUALIZAR orden de yate (solo campos permitidos)
+const updateYachtOrderSchema = Joi.object({
+    status: Joi.string().valid('pending', 'confirmed', 'paid', 'cancelled', 'deleted', 'completed').optional(),
+    isAvailable: Joi.boolean().optional(),
+    internalNotes: Joi.string().max(1000).optional().allow('').messages({
+        'string.max': 'Internal notes cannot exceed 1000 characters'
+    })
+});
+
+// ========================================
+// MIDDLEWARES
+// ========================================
 
 const validateYachtOrder = {
 
+    /**
+     * Validación para CREAR orden de yate
+     */
     create: (req, res, next) => {
-        const data = req.body;
+        const { error } = createYachtOrderSchema.validate(req.body, { abortEarly: false });
 
-        const camposObligatorios = [
-            'yachtId',
-            'destination',
-            'duration',
-            'travelDate',
-            'fullName',
-            'email',
-            'phone'
-        ];
-
-        for (const campo of camposObligatorios) {
-            if (!data[campo]) {
-                return res.status(400).json({
-                    ok: false,
-                    type: 'ValidationError',
-                    message: `The field '${campo}' is required to process the booking.`
-                });
-            }
-        }
-
-        if (!Types.ObjectId.isValid(data.yachtId)) {
+        if (error) {
+            const errors = error.details.map(detail => detail.message);
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'Invalid Yacht ID format.'
+                messages: errors
             });
         }
 
-        const filteredData = {};
-        CAMPOS_PERMITIDOS_CREATE.forEach(campo => {
-            if (data[campo] !== undefined) {
-                filteredData[campo] = data[campo];
-            }
-        });
-
-        req.body = filteredData;
         next();
     },
 
+    /**
+     * Validación para ACTUALIZAR orden de yate
+     */
     update: (req, res, next) => {
-        const updates = req.body;
-        const camposUpdate = Object.keys(updates);
+        const { error } = updateYachtOrderSchema.validate(req.body, { abortEarly: false });
 
-        if (camposUpdate.length === 0) {
+        if (error) {
+            const errors = error.details.map(detail => detail.message);
             return res.status(400).json({
                 ok: false,
                 type: 'ValidationError',
-                message: 'No data provided for update.'
+                messages: errors
             });
         }
 
-        const camposInvalidos = camposUpdate.filter(campo => !CAMPOS_PERMITIDOS_UPDATE.includes(campo));
-
-        if (camposInvalidos.length > 0) {
+        // ✅ Verificar que al menos un campo esté presente
+        if (Object.keys(req.body).length === 0) {
             return res.status(400).json({
                 ok: false,
-                type: 'ValidationError',
-                message: `You are not allowed to update these fields: ${camposInvalidos.join(', ')}`
+                type: 'EmptyRequest',
+                message: 'At least one field is required to update'
             });
         }
 
-        if (updates.internalNotes && updates.internalNotes.length > 1000) {
-            return res.status(400).json({
-                ok: false,
-                type: 'ValidationError',
-                message: 'Internal notes exceed the 1000 character limit.'
-            });
-        }
-
-        next();
-    },
-
-    id: (req, res, next) => {
-        const { id } = req.params;
-        if (!Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                ok: false,
-                type: 'ValidationError',
-                message: "The provided Order ID is not valid."
-            });
-        }
         next();
     }
 };

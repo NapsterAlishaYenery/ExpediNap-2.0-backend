@@ -5,7 +5,8 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth.middleware');
 const isAdminMiddleware = require('../middleware/isAdmin.middleware');
 const writeLimiter = require('../middleware/rateLimiter.middleware');
-const validateExcursionOrder = require('../middleware/validate-order-excursion.middleware'); //falta
+const validateExcursionOrder = require('../middleware/validate-order-excursion.middleware');
+const validateID = require('../middleware/validate-id.middleware');
 
 // Controlador
 const excursionOrderController = require('../controllers/excursion-order.controller');
@@ -32,16 +33,16 @@ router.get('/all-orders', [authMiddleware, isAdminMiddleware], excursionOrderCon
 router.get('/stats', [ authMiddleware, isAdminMiddleware], excursionOrderController.getExcursionStats);
 
 // Detalle 
-router.get('/detail/:id', [authMiddleware, isAdminMiddleware, validateExcursionOrder.id], excursionOrderController.getExcursionOrderById);
+router.get('/detail/:id', [authMiddleware, isAdminMiddleware, validateID.id], excursionOrderController.getExcursionOrderById);
 
 // Actualizar 
-router.patch('/update/:id', [authMiddleware, isAdminMiddleware, writeLimiter, validateExcursionOrder.id, validateExcursionOrder.update], excursionOrderController.updateExcursionOrder);
+router.patch('/update/:id', [authMiddleware, isAdminMiddleware, writeLimiter, validateID.id, validateExcursionOrder.update], excursionOrderController.updateExcursionOrder);
 
 // Borrado lógico
-router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateExcursionOrder.id], excursionOrderController.deleteExcursionOrder);
+router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateID.id], excursionOrderController.deleteExcursionOrder);
 
 // Borrado físico 
-router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateExcursionOrder.id], excursionOrderController.purgeExcursionOrder);
+router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateID.id], excursionOrderController.purgeExcursionOrder);
 
 
 

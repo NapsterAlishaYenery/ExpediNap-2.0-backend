@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const isAdminMiddleware = require('../middleware/isAdmin.middleware')
 const writeLimiter = require('../middleware/rateLimiter.middleware')
 const validateUsers = require('../middleware/validate-users.middleware')
+const validateID = require('../middleware/validate-id.middleware')
 
 
 const usersController = require('../controllers/user.controller');
@@ -16,9 +17,10 @@ router.get('/profile', authMiddleware, usersController.getUserProfile);
 //RUTAS POST
 router.post('/register', authMiddleware, isAdminMiddleware, writeLimiter, validateUsers.register, usersController.register);
 router.post('/login', writeLimiter, validateUsers.login, usersController.login);
+router.post('/logout', writeLimiter, usersController.logout);
 
 //RUTA PATCH
-router.patch('/update', authMiddleware, writeLimiter, validateUsers.update,  usersController.update);
+router.patch('/update', authMiddleware, writeLimiter, validateUsers.update, usersController.update);
 
 // RUTA PARA SOLICITAR EL CÓDIGO (Olvidé mi contraseña)
 router.post('/forgot-password', writeLimiter, usersController.requestPasswordReset);

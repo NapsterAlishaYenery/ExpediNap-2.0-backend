@@ -1,10 +1,14 @@
+// src/controllers/weather.controller.js
+const { getWeather, refreshWeather } = require('../services/weather.service');
 
-const axios = require('axios');
-
+/**
+ * Obtiene el clima de una ciudad (con cache)
+ * GET /api/weather?city=Punta%20Cana
+ * GET /api/weather?city=Punta%20Cana&refresh=true
+ */
 exports.getWeather = async (req, res) => {
     try {
-        const { city } = req.query; 
-        const apiKey =  process.env.OPEN_WEATHER_API_KEY;
+        const { city, refresh } = req.query;
         
         if (!city) {
             return res.status(400).json({
@@ -14,45 +18,59 @@ exports.getWeather = async (req, res) => {
             });
         }
 
-        const url = `https://api.openweathermap.org/data/2.5/weather`;
-        
-        const response = await axios.get(url, {
-            params: {
-                q: city,
-                appid: apiKey,
-                units: 'metric',
-                lang: 'es'
-            }
-        });
-
-        const filteredData = {
-            name: response.data.name,
-            temp: Math.round(response.data.main.temp),
-            description: response.data.weather[0].description,
-            icon: response.data.weather[0].icon,
-            humidity: response.data.main.humidity
-        };
+        // ✅ Si se pide refresh, forzar actualización
+        const forceRefresh = refresh === 'true';
+        const data = await getWeather(city, forceRefresh);
 
         return res.status(200).json({
             ok: true,
             message: 'Weather data retrieved successfully',
-            data: filteredData
+            data: data,
+            cached: !forceRefresh
         });
 
     } catch (error) {
+        console.error('Error en controlador de clima:', error);
 
-        if (error.response) {
-            return res.status(error.response.status).json({
+        res.status(error.status || 500).json({
+            ok: false,
+            message: error.message || 'Internal server error while fetching weather',
+            type: error.type || 'SERVER_ERROR'
+        });
+    }
+};
+
+/**
+ * Forzar actualización del clima (endpoint admin)
+ * POST /api/weather/refresh
+ */
+exports.refreshWeather = async (req, res) => {
+    try {
+        const { city } = req.body;
+        
+        if (!city) {
+            return res.status(400).json({
                 ok: false,
-                message: error.response.data.message || 'Error fetching weather data',
-                type: 'EXTERNAL_API_ERROR'
+                message: 'City is required',
+                type: 'VALIDATION_ERROR'
             });
         }
 
-        res.status(500).json({
+        const data = await refreshWeather(city);
+
+        res.status(200).json({
+            ok: true,
+            message: 'Weather refreshed successfully',
+            data: data
+        });
+
+    } catch (error) {
+        console.error('Error refrescando clima:', error);
+
+        res.status(error.status || 500).json({
             ok: false,
-            message: 'Internal server error while fetching weather',
-            type: 'SERVER_ERROR'
+            message: error.message || 'Error refreshing weather',
+            type: error.type || 'SERVER_ERROR'
         });
     }
 };

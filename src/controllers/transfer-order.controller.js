@@ -123,8 +123,6 @@ exports.createTransferOrder = async (req, res) => {
     }
 };
 
-
-
 exports.getAllTransferOrders = async (req, res) => {
     try {
 

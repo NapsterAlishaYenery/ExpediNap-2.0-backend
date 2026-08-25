@@ -11,6 +11,7 @@ const ncfController = require('../controllers/ncf.controller');
 
 // El Validador que acabamos de pulir
 const validateNcf = require('../middleware/validate-ncf.middleware');
+const validateID = require('../middleware/validate-id.middleware');
 
 /**
  * RUTAS PARA EL POOL DE NCF
@@ -40,7 +41,7 @@ router.post('/save-bulk', authMiddleware, isAdminMiddleware, writeLimiter, valid
 // --- RUTAS DELETE (Eliminación) ---
 
 // Eliminar un NCF específico (Solo Admin + Limiter)
-router.delete('/delete/:id', authMiddleware, isAdminMiddleware, writeLimiter, validateNcf.id, ncfController.deleteNcf
+router.delete('/delete/:id', authMiddleware, isAdminMiddleware, writeLimiter, validateID.id, ncfController.deleteNcf
 );
 
 module.exports = router;

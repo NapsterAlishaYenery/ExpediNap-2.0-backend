@@ -6,6 +6,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const isAdminMiddleware = require('../middleware/isAdmin.middleware');
 const writeLimiter = require('../middleware/rateLimiter.middleware');
 const validateYachtOrder = require('../middleware/validate-order-yacht.middleware');
+const validateID = require('../middleware/validate-id.middleware');
 
 // Controlador
 const yachtOrderController = require('../controllers/yacht-order.controller');
@@ -22,15 +23,15 @@ router.get('/all-orders', [authMiddleware, isAdminMiddleware], yachtOrderControl
 router.get('/stats', [authMiddleware, isAdminMiddleware], yachtOrderController.getYachtStats);
 
 // Obtener el detalle 
-router.get('/detail/:id', [authMiddleware, isAdminMiddleware, validateYachtOrder.id], yachtOrderController.getYachtOrderById);
+router.get('/detail/:id', [authMiddleware, isAdminMiddleware, validateID.id], yachtOrderController.getYachtOrderById);
 
 // Actualizar estado
-router.patch('/update/:id', [authMiddleware, isAdminMiddleware, writeLimiter, validateYachtOrder.id, validateYachtOrder.update], yachtOrderController.updateYachtOrder);
+router.patch('/update/:id', [authMiddleware, isAdminMiddleware, writeLimiter, validateID.id, validateYachtOrder.update], yachtOrderController.updateYachtOrder);
 
 // Borrado lógico 
-router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateYachtOrder.id], yachtOrderController.deleteYachtOrder);
+router.delete('/delete/:id', [authMiddleware, isAdminMiddleware, validateID.id], yachtOrderController.deleteYachtOrder);
 
 // Borrado físico 
-router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateYachtOrder.id], yachtOrderController.purgeYachtOrder);
+router.delete('/purge/:id', [authMiddleware, isAdminMiddleware, validateID.id], yachtOrderController.purgeYachtOrder);
 
 module.exports = router;

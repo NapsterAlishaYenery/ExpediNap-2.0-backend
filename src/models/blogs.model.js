@@ -1,5 +1,6 @@
 const { Schema, model } = require('mongoose');
 const stringArrayValidator = require('../utils/string-array.validator');
+const { ImageItemSchema } = require('../models/schema/images.schema');
 
 const slugify = require('slugify');
 
@@ -55,13 +56,18 @@ const BlogsSchema = new Schema({
         trim: true
     },
     image: {
-        type: String, 
-        required: [true, 'la imagen es requerida JPS, JPEG, PNG, WEBP'],
+        type: ImageItemSchema,
+        required: [true, 'Image is required JPS, JPEG, PNG, WEBP'],
         trim: true
     },
-    alt: {
+    contentImages: {
+        type: [ImageItemSchema],
+        default: []
+    },
+    cloudinaryFolder: {
         type: String,
-        required: [true, 'Alt text is required for accessibility and SEO'],
+        required: [true, 'Cloudinary folder is required'],
+        unique: true,
         trim: true
     },
     content: {
@@ -82,7 +88,7 @@ BlogsSchema.pre('validate', function () {
 
         const date = new Date();
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); 
+        const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
 
         const dateString = `${year}-${month}-${day}`;
