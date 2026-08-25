@@ -103,4 +103,4 @@ YachtsSchema.index({ name: 'text', description: 'text' }); // Búsqueda de texto
 
 
 // module.exports = model("yacht", YachtsSchema);
-module.exports = model("yacht", YachtsSchema);
+module.exports = model("yachts", YachtsSchema);
