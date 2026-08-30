@@ -43,8 +43,10 @@ app.set('trust proxy', 1);
 // Configuarar CORS 
 const allowedOrigins = [
     "http://localhost:4200",
+    "http://localhost:5001",
     process.env.FRONTEND_URL,
     process.env.FRONTEND_URL_2,
+    process.env.FRONTEND_URL_SSR
 ]
 
 app.use(cors({
